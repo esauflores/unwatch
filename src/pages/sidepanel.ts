@@ -1,9 +1,11 @@
 import "deep-chat"; // side-effect: registers the <deep-chat> element
 import type { DeepChat } from "deep-chat";
-import { errMsg, renderMarkdown, settings, UI } from "./shared";
-import type { Lang } from "./shared";
-import { chatVideo, filterVideo, getVideo } from "./videos";
-import { formatTranscript, stripVerdictLine, verdictLabel, type Video } from "./schema";
+import { type Lang, UI } from "@/lib/i18n";
+import { renderMarkdown } from "@/lib/markdown";
+import { settings } from "@/lib/settings";
+import { errMsg } from "@/lib/util";
+import { chatVideo, filterVideo, getVideo } from "@/lib/videos";
+import { formatTranscript, stripVerdictLine, verdictLabel, type Video } from "@/lib/schema";
 
 type Meta = { videoId: string; title?: string; duration?: number };
 
@@ -84,47 +86,52 @@ const fileBase = () =>
 const chatToMd = (v: Video) =>
   (v.chat_json ?? []).map((turn) => `${turn.role === "user" ? "Q" : "A"}: ${turn.content}`).join("\n\n");
 
-// One-time deep-chat wiring, once a video has been extracted for this tab.
+window.addEventListener("resize", () => {
+  if (!viewChat.hidden) fitChat();
+});
+
+// Configure deep-chat once; (re)seed its messages for whichever video is current.
 function setupChat(v: Video): void {
   btn("tab-chat").disabled = false;
-  if (chatReady) return;
-  chatReady = true;
-
-  dc.style.cssText = `display:block;width:100%;border:1px solid ${C.line};border-radius:10px;background-color:${C.panel}`;
-  dc.textInput = {
-    placeholder: { text: t.askPlaceholder, style: { color: C.muted } },
-    styles: { text: { color: C.fg }, container: { backgroundColor: C.panel2, border: `1px solid ${C.line}` } },
-  };
-  dc.messageStyles = {
-    default: {
-      // deep-chat caps .message-bubble at 60% — too narrow for a side panel
-      shared: { bubble: { maxWidth: "92%" } },
-      ai: { bubble: { backgroundColor: C.panel2, color: C.fg } },
-      user: { bubble: { backgroundColor: C.accent, color: C.accentInk } },
-    },
-  };
-  dc.submitButtonStyles = { submit: { container: { default: { backgroundColor: C.accent } } } };
-  dc.history = (v.chat_json ?? []).map((turn) => ({
-    role: turn.role === "assistant" ? "ai" : "user",
-    text: turn.content,
-  }));
-  dc.connect = {
-    handler: async (
-      body: { messages?: { text?: string }[] },
-      signals: { onResponse: (r: { text?: string; error?: string }) => void },
-    ) => {
-      const msg = body.messages?.[body.messages.length - 1]?.text ?? "";
-      try {
-        const { answer } = await chatVideo(videoId, msg);
-        signals.onResponse({ text: answer });
-      } catch (e) {
-        signals.onResponse({ error: errMsg(e) });
-      }
-    },
-  };
-  window.addEventListener("resize", () => {
-    if (!viewChat.hidden) fitChat();
-  });
+  if (!chatReady) {
+    chatReady = true;
+    dc.style.cssText = `display:block;width:100%;border:1px solid ${C.line};border-radius:10px;background-color:${C.panel}`;
+    dc.textInput = {
+      placeholder: { text: t.askPlaceholder, style: { color: C.muted } },
+      styles: { text: { color: C.fg }, container: { backgroundColor: C.panel2, border: `1px solid ${C.line}` } },
+    };
+    dc.messageStyles = {
+      default: {
+        // deep-chat caps .message-bubble at 60% — too narrow for a side panel
+        shared: { bubble: { maxWidth: "92%" } },
+        ai: { bubble: { backgroundColor: C.panel2, color: C.fg } },
+        user: { bubble: { backgroundColor: C.accent, color: C.accentInk } },
+      },
+    };
+    dc.submitButtonStyles = { submit: { container: { default: { backgroundColor: C.accent } } } };
+    dc.connect = {
+      handler: async (
+        body: { messages?: { text?: string }[] },
+        signals: { onResponse: (r: { text?: string; error?: string }) => void },
+      ) => {
+        const msg = body.messages?.[body.messages.length - 1]?.text ?? "";
+        try {
+          const { answer } = await chatVideo(videoId, msg); // videoId is kept current by refresh()
+          signals.onResponse({ text: answer });
+        } catch (e) {
+          signals.onResponse({ error: errMsg(e) });
+        }
+      },
+    };
+  }
+  try {
+    dc.clearMessages(true);
+  } catch {
+    /* nothing to clear */
+  }
+  for (const turn of v.chat_json ?? []) {
+    dc.addMessage({ role: turn.role === "assistant" ? "ai" : "user", text: turn.content });
+  }
 }
 
 function showVideo(v: Video): void {
@@ -145,9 +152,8 @@ function showVideo(v: Video): void {
 async function busy(id: string, fn: () => Promise<void>): Promise<void> {
   const b = btn(id);
   if (b.disabled) return;
-  const label = b.textContent;
   b.disabled = true;
-  b.textContent = `${label} …`;
+  b.classList.add("loading");
   showErr("");
   try {
     await fn();
@@ -155,7 +161,7 @@ async function busy(id: string, fn: () => Promise<void>): Promise<void> {
     showErr(errMsg(e));
   } finally {
     b.disabled = false;
-    b.textContent = label;
+    b.classList.remove("loading");
   }
 }
 
@@ -179,6 +185,69 @@ btn("dl-extract").onclick = () => current && saveFile(`${fileBase()} — extract
 btn("dl-chat").onclick = () => current && saveFile(`${fileBase()} — chat.md`, chatToMd(current));
 btn("lib").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("library.html") });
 
+const loadingEl = document.getElementById("loading")!;
+const verdictEl = document.getElementById("verdict") as HTMLElement;
+
+function clearVideoUI(): void {
+  current = null;
+  out.replaceChildren();
+  verdictEl.hidden = true;
+  btn("tab-chat").disabled = true;
+  btn("tab-download").disabled = true;
+  try {
+    dc.clearMessages(true);
+  } catch {
+    /* deep-chat not set up yet */
+  }
+}
+
+// Re-read the active tab's video and re-render. Used at startup and whenever the
+// tab changes or YouTube navigates to another video — no page reload.
+async function refresh(): Promise<void> {
+  loadingEl.hidden = false;
+  try {
+    const p = await send({ type: "unwatch:meta" });
+    console.log("[unwatch] refresh: meta =", p);
+    setMeta(p);
+    const v = await getVideo(p.videoId);
+    if (v) showVideo(v);
+    else clearVideoUI();
+    showView("extract");
+  } catch {
+    videoId = "";
+    clearVideoUI();
+    metaEl.textContent = t.noVideo;
+  } finally {
+    loadingEl.hidden = true;
+  }
+}
+
+// The panel is global (one per window); debounce the triggers so a burst of
+// events (tab switch + SPA nav firing together) is one refresh.
+let ready = false;
+let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+function scheduleRefresh(): void {
+  if (!ready) return;
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(() => void refresh(), 250);
+}
+chrome.tabs.onActivated.addListener(() => {
+  console.log("[unwatch] tab activated");
+  scheduleRefresh();
+});
+chrome.tabs.onUpdated.addListener((_id, info, tab) => {
+  if (info.url && tab.active) {
+    console.log("[unwatch] tab url changed", info.url);
+    scheduleRefresh();
+  }
+});
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type === "unwatch:navigated") {
+    console.log("[unwatch] got unwatch:navigated");
+    scheduleRefresh();
+  }
+});
+
 (async () => {
   lang = (await settings()).lang;
   t = UI[lang];
@@ -190,14 +259,6 @@ btn("lib").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("libr
   btn("dl-extract").textContent = t.extract;
   btn("dl-chat").textContent = t.chat;
   btn("lib").textContent = t.library;
-  try {
-    const p = await send({ type: "unwatch:meta" });
-    setMeta(p);
-    const v = await getVideo(p.videoId);
-    if (v) showVideo(v);
-    else videoId = "";
-  } catch {
-    videoId = "";
-    metaEl.textContent = t.noVideo;
-  }
+  await refresh();
+  ready = true;
 })();

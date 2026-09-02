@@ -1,3 +1,4 @@
+import { basename } from "node:path";
 import { cp, rm } from "node:fs/promises";
 import * as esbuild from "esbuild";
 
@@ -5,15 +6,21 @@ const outdir = "dist";
 const watch = process.argv.includes("--watch");
 
 await rm(outdir, { recursive: true, force: true });
-const assets = ["manifest.json", "styles.css", "sidepanel.html", "library.html"];
+const assets = ["manifest.json", "styles.css", "pages/sidepanel.html", "pages/library.html"];
 for (const s of [16, 32, 48, 128]) assets.push(`icon-${s}.png`);
 for (const f of assets) {
-  await cp(`src/${f}`, `${outdir}/${f}`);
+  await cp(`src/${f}`, `${outdir}/${basename(f)}`);
 }
 
 const ctx = await esbuild.context({
-  entryPoints: ["src/background.ts", "src/content.ts", "src/sidepanel.ts", "src/library.ts"],
+  entryPoints: [
+    "src/pages/background.ts",
+    "src/pages/content.ts",
+    "src/pages/sidepanel.ts",
+    "src/pages/library.ts",
+  ],
   outdir,
+  outbase: "src/pages",
   bundle: true,
   format: "iife",
   target: "chrome120",

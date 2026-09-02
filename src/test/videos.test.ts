@@ -1,5 +1,5 @@
 import { beforeEach, expect, it } from "vitest";
-import { chatVideo, filterVideo, getVideo, listVideos } from "./videos";
+import { chatVideo, filterVideo, getVideo, listVideos } from "@/lib/videos";
 
 // Minimal chrome.storage.local stub — an in-memory object behind get/set.
 // Seeded with the demo provider so the flow runs offline.

@@ -98,17 +98,25 @@ D1 backend (for a shared library across devices) is the plausible next step —
 ```
 src/
   manifest.json  styles.css  icon.svg → icon-{16,32,48,128}.png
-  background.ts   service worker: opens the side panel on the action click
-  content.ts      videoId/title/duration + transcript (youtube-transcript lib,
-                  DOM transcript-panel scrape as fallback)
-  sidepanel.ts    Extract | Chat | Download tabs         (+ sidepanel.html)
-  library.ts      saved list + settings                (+ library.html)
-  shared.ts       settings in chrome.storage.local
-  videos.ts       store + orchestration (filter/chat/list/get)
-  llm.ts          BYOK via Vercel AI SDK: anthropic | openai | gemini | demo
-  prompt.ts       filter / chat prompts
-  schema.ts       types + pure helpers
-  *.test.ts       pure logic + the demo flow through a stubbed storage
+  pages/                                  esbuild entry points (+ their .html)
+    background.ts  service worker: opens the side panel on the action click
+    content.ts     videoId/title/duration + transcript + SPA-nav ping
+                   (youtube-transcript lib, DOM panel scrape as fallback)
+    sidepanel.ts   Extract | Chat | Download tabs        (+ sidepanel.html)
+    library.ts     saved list + settings                 (+ library.html)
+  lib/                                     shared, no DOM entry of its own
+    schema.ts      types + pure helpers
+    i18n.ts        Lang + the UI string table
+    settings.ts    chrome.storage.local settings + the settings form
+    markdown.ts    the tiny markdown → DOM renderer
+    prompt.ts      filter / chat prompt assembly
+    llm.ts         BYOK via Vercel AI SDK: anthropic | openai | gemini | demo
+    videos.ts      store + orchestration (filter/chat/list/get/delete)
+    util.ts        errMsg
+  test/            pure logic + the demo flow through a stubbed storage
 ```
+
+Imports use the `@/` alias for `src/` (`tsconfig.json` `paths`, mirrored in
+`vitest.config.ts`; esbuild reads it from tsconfig).
 
 `pnpm test` · `pnpm typecheck`

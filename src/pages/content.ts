@@ -1,5 +1,7 @@
 import { YoutubeTranscript } from "youtube-transcript";
 
+console.log("[unwatch] content script loaded", location.href);
+
 type Cue = { t: number; text: string };
 
 const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -9,15 +11,22 @@ function videoId(): string | null {
 }
 
 function title(): string {
-  return (
-    document.querySelector("h1.ytd-watch-metadata yt-formatted-string")?.textContent?.trim() || document.title
-  );
+  // document.title is updated by YouTube's router on every SPA nav; the <h1> can
+  // lag or be a stale renderer, so use it only as a fallback.
+  const fromDoc = document.title
+    .replace(/^\(\d+\)\s*/, "")
+    .replace(/\s*-\s*YouTube\s*$/, "")
+    .trim();
+  return fromDoc || document.querySelector("h1.ytd-watch-metadata")?.textContent?.trim() || "";
 }
 
 function duration(): number {
-  const player = document.getElementById("movie_player") as any;
-  const d = player?.getDuration?.() ?? document.querySelector("video")?.duration;
-  return Number.isFinite(d) && d > 0 ? Math.round(d) : 0;
+  const txt = document.querySelector(".ytp-time-duration")?.textContent?.trim();
+  if (txt && /^\d+(:\d{2})+$/.test(txt)) {
+    return txt.split(":").reduce((a, n) => a * 60 + Number(n), 0);
+  }
+  const d = document.querySelector("video")?.duration;
+  return Number.isFinite(d) && (d ?? 0) > 0 ? Math.round(d as number) : 0;
 }
 
 // Primary path: the youtube-transcript package (watch-HTML / InnerTube → timedtext).
@@ -121,3 +130,26 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (video && Number.isFinite(msg.t)) video.currentTime = msg.t;
   }
 });
+
+// YouTube SPA-navigates between videos without a full page load. On a real
+// video-id change, wait for document.title to actually update (it lags the URL),
+// then tell the panel so its re-read picks up the fresh title/duration.
+let lastId = videoId();
+function onNav(): void {
+  const id = videoId();
+  if (id === lastId) return;
+  lastId = id;
+  console.log("[unwatch] nav →", id, "(waiting for title)");
+  const before = document.title;
+  let tries = 0;
+  const iv = setInterval(() => {
+    if (document.title !== before || ++tries > 25) {
+      clearInterval(iv);
+      console.log("[unwatch] notifying panel, title:", document.title);
+      chrome.runtime.sendMessage({ type: "unwatch:navigated" }).catch(() => {});
+    }
+  }, 100);
+}
+document.addEventListener("yt-navigate-finish", onNav);
+window.addEventListener("yt-navigate-finish", onNav);
+setInterval(onNav, 1000); // catch navs where the event doesn't reach us

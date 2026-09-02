@@ -1,7 +1,7 @@
-import type { ChatMessage } from "./llm";
-import type { Lang } from "./shared";
-import type { ChatTurn, Cue } from "./schema";
-import { formatTranscript } from "./schema";
+import type { ChatMessage } from "@/lib/llm";
+import type { Lang } from "@/lib/i18n";
+import type { ChatTurn, Cue } from "@/lib/schema";
+import { formatTranscript } from "@/lib/schema";
 
 // Structural labels (Title:, Transcript:, …) stay English in both modes — they are
 // scaffolding, not output. Only the instructions and the requested output language change.

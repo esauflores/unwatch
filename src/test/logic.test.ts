@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
-import { complete, demoComplete } from "./llm";
-import { extractClaimsMd, formatTranscript, parseVerdict, stripVerdictLine } from "./schema";
-import { renderMarkdown } from "./shared";
+import { complete, demoComplete } from "@/lib/llm";
+import { extractClaimsMd, formatTranscript, parseVerdict, stripVerdictLine } from "@/lib/schema";
+import { renderMarkdown } from "@/lib/markdown";
 
 // Tiny fake DOM so renderMarkdown runs in the node env (no jsdom dependency).
 type FakeNode = { tag: string; className: string; type: string; children: FakeNode[]; text: string; onclick?: () => void };

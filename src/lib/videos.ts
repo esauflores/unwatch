@@ -1,7 +1,7 @@
-import { complete, defaults, type Provider } from "./llm";
-import { chatMessages, filterMessages } from "./prompt";
-import { type Cue, extractClaimsMd, type ListItem, listItem, parseVerdict, type Video } from "./schema";
-import { resolvedPrompts, settings } from "./shared";
+import { complete, defaults, type Provider } from "@/lib/llm";
+import { chatMessages, filterMessages } from "@/lib/prompt";
+import { type Cue, extractClaimsMd, type ListItem, listItem, parseVerdict, type Video } from "@/lib/schema";
+import { resolvedPrompts, settings } from "@/lib/settings";
 
 const KEY = "videos";
 

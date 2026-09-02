@@ -1,14 +1,9 @@
-import {
-  bindSettingsForm,
-  DEFAULT_CHAT_PROMPT,
-  DEFAULT_FILTER_PROMPT,
-  errMsg,
-  renderMarkdown,
-  settings,
-  UI,
-} from "./shared";
-import { formatTranscript, stripVerdictLine, verdictLabel } from "./schema";
-import { deleteVideo, getVideo, listVideos } from "./videos";
+import { UI } from "@/lib/i18n";
+import { renderMarkdown } from "@/lib/markdown";
+import { bindSettingsForm, DEFAULT_CHAT_PROMPT, DEFAULT_FILTER_PROMPT, settings } from "@/lib/settings";
+import { errMsg } from "@/lib/util";
+import { formatTranscript, stripVerdictLine, verdictLabel } from "@/lib/schema";
+import { deleteVideo, getVideo, listVideos } from "@/lib/videos";
 
 let t = UI.en;
 
