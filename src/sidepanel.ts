@@ -67,42 +67,50 @@ async function ensureVideo(): Promise<void> {
   if (p.videoId !== videoId) throw new Error("filter this video first");
 }
 
-document.getElementById("run")!.onclick = async () => {
+// Disable the button and mark it busy while its async work runs, so a slow
+// transcript fetch + LLM call reads as "in progress" instead of "nothing happened".
+async function busy(id: string, fn: () => Promise<void>): Promise<void> {
+  const b = btn(id);
+  if (b.disabled) return;
+  const label = b.textContent;
+  b.disabled = true;
+  b.textContent = `${label} …`;
   showErr("");
   try {
+    await fn();
+  } catch (e) {
+    showErr(errMsg(e));
+  } finally {
+    b.disabled = false;
+    b.textContent = label;
+  }
+}
+
+btn("run").onclick = () =>
+  void busy("run", async () => {
     const p = await send({ type: "unwatch:page" });
     setMeta(p);
     showVideo(await filterVideo({ videoId: p.videoId, title: p.title, cues: p.cues }));
-  } catch (e) {
-    showErr(errMsg(e));
-  }
-};
+  });
 
-document.getElementById("ask")!.onclick = async () => {
-  showErr("");
+btn("ask").onclick = () => {
   const message = q.value.trim();
   if (!message) return;
-  try {
+  void busy("ask", async () => {
     await ensureVideo();
     const { answer } = await chatVideo(videoId, message);
     q.value = "";
     appendChat(`Q: ${message}\nA: ${answer}`);
-  } catch (e) {
-    showErr(errMsg(e));
-  }
+  });
 };
 
-document.getElementById("conc")!.onclick = async () => {
-  showErr("");
-  try {
+btn("conc").onclick = () =>
+  void busy("conc", async () => {
     await ensureVideo();
     const { conclusiones_md } = await conclusionesVideo(videoId);
     await navigator.clipboard.writeText(conclusiones_md);
     appendChat(`## ${t.notes} (${t.copied})\n${conclusiones_md}`);
-  } catch (e) {
-    showErr(errMsg(e));
-  }
-};
+  });
 
 document.getElementById("lib")!.onclick = () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("library.html") });

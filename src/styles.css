@@ -69,7 +69,7 @@ button, select, input, textarea {
 button { cursor: pointer; }
 button:hover { border-color: #3d434d; background: #21252b; }
 button:active { transform: translateY(0.5px); }
-button:disabled { opacity: 0.45; cursor: default; }
+button:disabled { opacity: 0.45; cursor: progress; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 button.primary {
