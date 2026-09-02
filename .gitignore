@@ -12,3 +12,4 @@ logs/
 .idea/
 .vscode/*
 !.vscode/launch.json
+unwatch.zip
