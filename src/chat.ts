@@ -1,14 +1,13 @@
+import { DeepChat } from "deep-chat";
 import { errMsg, renderMarkdown, settings, UI } from "./shared";
 import { chatVideo, conclusionesVideo, getVideo } from "./videos";
-import type { Video } from "./schema";
 
 const videoId = new URLSearchParams(location.search).get("v") ?? "";
 
 const err = document.getElementById("err")!;
 const out = document.getElementById("out")!;
-const chatEl = document.getElementById("chat")!;
-const q = document.getElementById("q") as HTMLTextAreaElement;
 const metaEl = document.getElementById("meta")!;
+const dc = document.getElementById("dc") as DeepChat;
 const btn = (id: string) => document.getElementById(id) as HTMLButtonElement;
 
 let t = UI.en;
@@ -27,23 +26,15 @@ async function seek(sec: number): Promise<void> {
   }
 }
 
-const renderMd = (el: HTMLElement, text: string): void => renderMarkdown(el, text, seek);
-
-function renderHistory(v: Video): void {
-  const parts: string[] = [];
-  for (const turn of v.chat_json ?? []) {
-    parts.push(`${turn.role === "user" ? "Q" : "A"}: ${turn.content}`);
-  }
-  if (v.conclusiones_md) parts.push(`## ${t.notes}\n${v.conclusiones_md}`);
-  chatEl.dataset.raw = parts.join("\n\n");
-  renderMd(chatEl, chatEl.dataset.raw);
-}
-
-function appendChat(block: string): void {
-  const raw = chatEl.dataset.raw ? `${chatEl.dataset.raw}\n\n${block}` : block;
-  chatEl.dataset.raw = raw;
-  renderMd(chatEl, raw);
-}
+const C = {
+  panel: "#16181c",
+  panel2: "#1c1f24",
+  fg: "#e9eaec",
+  muted: "#969ba3",
+  line: "#2a2e35",
+  accent: "#8cf",
+  accentInk: "#06121a",
+};
 
 async function busy(id: string, fn: () => Promise<void>): Promise<void> {
   const b = btn(id);
@@ -62,42 +53,56 @@ async function busy(id: string, fn: () => Promise<void>): Promise<void> {
   }
 }
 
-btn("ask").onclick = () => {
-  const message = q.value.trim();
-  if (!message) return;
-  void busy("ask", async () => {
-    const { answer } = await chatVideo(videoId, message);
-    q.value = "";
-    appendChat(`Q: ${message}\nA: ${answer}`);
-  });
-};
-
 btn("conc").onclick = () =>
   void busy("conc", async () => {
     const { conclusiones_md } = await conclusionesVideo(videoId);
     await navigator.clipboard.writeText(conclusiones_md);
-    appendChat(`## ${t.notes} (${t.copied})\n${conclusiones_md}`);
+    dc.addMessage({ role: "ai", text: `**${t.notes} (${t.copied})**\n\n${conclusiones_md}` });
   });
 
 btn("lib").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("library.html") });
 
 (async () => {
   t = UI[(await settings()).lang];
-  btn("ask").textContent = t.ask;
   btn("conc").textContent = t.notes;
   btn("lib").textContent = t.library;
-  q.placeholder = t.askPlaceholder;
 
   const v = videoId ? await getVideo(videoId) : undefined;
   if (!v) {
     metaEl.textContent = "No extracted video — Extract one from the side panel first.";
-    q.disabled = true;
-    btn("ask").disabled = true;
+    dc.style.display = "none";
     btn("conc").disabled = true;
     return;
   }
   document.title = `unwatch — ${v.title}`;
   metaEl.textContent = `${v.title}${v.verdict ? ` · ${v.verdict}` : ""}`;
-  renderMd(out, v.filter_md ?? "");
-  renderHistory(v);
+  renderMarkdown(out, v.filter_md ?? "", seek);
+
+  dc.style.cssText = `width:100%;height:70vh;border:1px solid ${C.line};border-radius:10px;background-color:${C.panel}`;
+  dc.textInput = {
+    placeholder: { text: t.askPlaceholder, style: { color: C.muted } },
+    styles: { text: { color: C.fg }, container: { backgroundColor: C.panel2, border: `1px solid ${C.line}` } },
+  };
+  dc.messageStyles = {
+    default: {
+      ai: { bubble: { backgroundColor: C.panel2, color: C.fg } },
+      user: { bubble: { backgroundColor: C.accent, color: C.accentInk } },
+    },
+  };
+  dc.submitButtonStyles = { submit: { container: { default: { backgroundColor: C.accent } } } };
+  dc.history = (v.chat_json ?? []).map((turn) => ({
+    role: turn.role === "assistant" ? "ai" : "user",
+    text: turn.content,
+  }));
+  dc.connect = {
+    handler: async (body: { messages?: { text?: string }[] }, signals: { onResponse: (r: { text?: string; error?: string }) => void }) => {
+      const msg = body.messages?.[body.messages.length - 1]?.text ?? "";
+      try {
+        const { answer } = await chatVideo(videoId, msg);
+        signals.onResponse({ text: answer });
+      } catch (e) {
+        signals.onResponse({ error: errMsg(e) });
+      }
+    },
+  };
 })();

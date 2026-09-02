@@ -76,7 +76,7 @@ src/
   content.ts      videoId/title/duration + transcript (youtube-transcript lib,
                   DOM transcript-panel scrape as fallback)
   sidepanel.ts    extract + result card                (+ sidepanel.html)
-  chat.ts         ask / conclusiones on one video      (+ chat.html)
+  chat.ts         ask / conclusiones on one video      (+ chat.html, deep-chat UI)
   library.ts      saved list + settings                (+ library.html)
   shared.ts       settings in chrome.storage.local
   videos.ts       store + orchestration (filter/chat/conclusiones/list/get)
