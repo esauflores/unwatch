@@ -83,10 +83,10 @@ function saveFile(name: string, text: string): void {
   URL.revokeObjectURL(url);
 }
 const fileBase = () =>
-  (current?.title ?? "unwatch")
+  (current?.title ?? "Unwatch")
     .replace(/[^\p{L}\p{N} _-]/gu, "")
     .trim()
-    .slice(0, 80) || "unwatch";
+    .slice(0, 80) || "Unwatch";
 const chatToMd = (v: Video) =>
   (v.chat_json ?? []).map((turn) => `${turn.role === "user" ? "Q" : "A"}: ${turn.content}`).join("\n\n");
 

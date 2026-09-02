@@ -1,10 +1,10 @@
-# unwatch
+# Unwatch
 
 Skip a YouTube video from its captions. Filter → ask → save bullets.
 
 Oliver runs 10–15 videos/podcasts a day and doesn't watch them. In Claude that
 loop is ~10 min each: summary → skip if it's more of the same → ask what he
-actually cares about. unwatch puts that on the watch page as a side panel with
+actually cares about. Unwatch puts that on the watch page as a side panel with
 **Extract**, **Chat** and **Download** tabs.
 
 A Chrome MV3 extension, TypeScript, bundled with esbuild. **No server:** the LLM
@@ -22,7 +22,7 @@ pnpm build          # → dist/   (pnpm watch to rebuild on save)
 1. Chrome → `chrome://extensions` → Developer mode
 2. Load unpacked → `dist/`
 3. Open a YouTube watch page that has captions
-4. Click the unwatch icon (side panel)
+4. Click the Unwatch icon (side panel)
 5. **Library & settings** → pick a provider + paste an LLM key, Save
 6. **Extract from this video** — verdict + claim bullets. **Chat** and **Download** tabs unlock after
 
