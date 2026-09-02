@@ -3,7 +3,7 @@
   "name": "unwatch",
   "version": "0.0.1",
   "description": "Filter a YouTube video, ask it, save the bullets.",
-  "permissions": ["sidePanel", "storage", "unlimitedStorage", "activeTab", "scripting"],
+  "permissions": ["sidePanel", "storage", "unlimitedStorage", "activeTab"],
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://api.anthropic.com/*",

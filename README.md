@@ -46,7 +46,7 @@ spend cap.
 
 ## What it does
 
-- One click on `youtube.com/watch`: timed captions from the page → one BYOK call
+- One click on `youtube.com/watch`: transcript from the page → one BYOK call
   → markdown (verdict + claim bullets). No captions → one-line error, stop.
 - Verdict is **vs your own saved bullets**, not "AI videos in general":
   `new`/`nuevo` | `seen`/`ya_visto` | `mixed`/`mixto` (per language). First video:
@@ -71,8 +71,9 @@ D1 backend (for a shared library across devices) is the plausible next step —
 ```
 src/
   manifest.json  styles.css  icon.svg → icon-{16,32,48,128}.png
-  background.ts   service worker: opens the panel, MAIN-world player grab
-  content.ts      videoId, title, duration, timed captions from the page
+  background.ts   service worker: opens the side panel on the action click
+  content.ts      videoId/title/duration + transcript (youtube-transcript lib,
+                  DOM transcript-panel scrape as fallback)
   sidepanel.ts    filter → ask → conclusiones          (+ sidepanel.html)
   library.ts      saved list + settings                (+ library.html)
   shared.ts       settings in chrome.storage.local
