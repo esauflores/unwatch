@@ -6,9 +6,10 @@ import {
   DEFAULT_CHAT_PROMPT,
   DEFAULT_FILTER_PROMPT,
   normalizeBaseUrl,
+  originPattern,
   settings,
 } from "@/lib/settings";
-import { errMsg } from "@/lib/util";
+import { errMsg, modelIds } from "@/lib/util";
 import { deleteVideo, getVideo, listVideos } from "@/lib/videos";
 
 let t = UI.en;
@@ -31,59 +32,73 @@ const DEFAULT_MODEL: Record<string, string> = {
   gemini: "gemini-3.5-flash",
 };
 
+// `note` is a normal state worth explaining (no key yet, host not granted);
+// `error` is a failure and is shown in red.
+type ModelLookup = { ids: string[]; error?: string; note?: string };
+
+// A non-2xx here is the single most useful thing to surface — a custom endpoint
+// that 404s on /models is the likeliest setup mistake — so this throws instead of
+// quietly returning an empty list.
+async function getJson(url: string, headers: Record<string, string>) {
+  const r = await fetch(url, { headers });
+  if (!r.ok) throw new Error(`${r.status} — ${(await r.text().catch(() => "")).trim().slice(0, 140)}`);
+  return r.json();
+}
+
 // Live list straight from the provider — the only source that's actually current
-// and scoped to your key. Returns [] on any failure so the caller falls back.
-async function fetchModelIds(provider: string, key: string, baseUrl: string): Promise<string[]> {
+// and scoped to your key.
+async function fetchModelIds(provider: string, key: string, baseUrl: string): Promise<ModelLookup> {
   try {
     if (provider === "custom") {
-      // Same route on any OpenAI-compatible server — but plenty of local ones
-      // don't implement it, so this has to be free to come back empty.
       const parsed = normalizeBaseUrl(baseUrl);
-      if ("error" in parsed) return [];
-      const r = await fetch(`${parsed.url}/models`, {
-        headers: key ? { Authorization: `Bearer ${key}` } : {},
-      });
-      const j = await r.json();
-      return (j.data ?? []).map((m: { id: string }) => m.id).filter(Boolean);
+      if ("error" in parsed) return { ids: [], note: t.baseUrlErrors[parsed.error] };
+      // Without the host grant the fetch dies as an opaque "Failed to fetch" —
+      // check first so the answer is "hit Save", not a network error.
+      let granted = false;
+      try {
+        granted = await chrome.permissions.contains({ origins: [originPattern(parsed.url)] });
+      } catch {
+        granted = false;
+      }
+      if (!granted) return { ids: [], note: t.modelsNeedSave };
+      const j = await getJson(`${parsed.url}/models`, key ? { Authorization: `Bearer ${key}` } : {});
+      // Ids on an arbitrary server carry no useful order — alphabetical it is.
+      return { ids: modelIds(j.data ?? j.models ?? j).sort((a, b) => a.localeCompare(b)) };
     }
     if (provider === "anthropic") {
-      const r = await fetch("https://api.anthropic.com/v1/models?limit=1000", {
-        headers: {
-          "x-api-key": key,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
+      const j = await getJson("https://api.anthropic.com/v1/models?limit=1000", {
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
       });
-      const j = await r.json();
-      return (j.data ?? [])
+      const ids = (j.data ?? [])
         .sort((a: { created_at: string }, b: { created_at: string }) =>
           String(b.created_at).localeCompare(String(a.created_at)),
         )
         .map((m: { id: string }) => m.id);
+      return { ids };
     }
     if (provider === "openai") {
-      const r = await fetch("https://api.openai.com/v1/models", {
-        headers: { Authorization: `Bearer ${key}` },
-      });
-      const j = await r.json();
-      return (j.data ?? [])
+      const j = await getJson("https://api.openai.com/v1/models", { Authorization: `Bearer ${key}` });
+      const ids = (j.data ?? [])
         .filter((m: { id: string }) => /^(gpt-|o\d)/.test(m.id))
         .sort((a: { created: number }, b: { created: number }) => (b.created ?? 0) - (a.created ?? 0))
         .map((m: { id: string }) => m.id);
+      return { ids };
     }
     if (provider === "gemini") {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}&pageSize=1000`);
-      const j = await r.json();
-      return (j.models ?? [])
+      const j = await getJson(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}&pageSize=1000`, {});
+      const ids = (j.models ?? [])
         .filter((m: { supportedGenerationMethods?: string[] }) =>
           m.supportedGenerationMethods?.includes("generateContent"),
         )
         .map((m: { name: string }) => m.name.replace(/^models\//, ""));
+      return { ids };
     }
-  } catch {
-    /* fall through to fallback */
+  } catch (e) {
+    return { ids: [], error: errMsg(e) };
   }
-  return [];
+  return { ids: [] };
 }
 
 const datalist = document.getElementById("model-suggestions") as HTMLDataListElement;
@@ -98,23 +113,58 @@ function syncCustomRow(): void {
   baseRow.hidden = providerSelect.value !== "custom";
 }
 
+const modelStatus = document.getElementById("model-status")!;
+function setModelStatus(msg: string, bad: boolean): void {
+  modelStatus.textContent = msg;
+  modelStatus.className = bad ? "note bad" : "note";
+}
+
+function applyModels(ids: string[], live: boolean, found: ModelLookup): void {
+  datalist.replaceChildren(...ids.map((id) => Object.assign(document.createElement("option"), { value: id })));
+  if (found.error) setModelStatus(t.modelsFailed(found.error), true);
+  else if (found.note) setModelStatus(found.note, false);
+  else if (ids.length) setModelStatus(live ? t.modelsFound(ids.length) : t.modelsBuiltin(ids.length), false);
+  else setModelStatus(t.modelsNone, false);
+}
+
+// A slow lookup must never overwrite the answer to a newer one.
+let lookup = 0;
+
 async function refreshModelHints(): Promise<void> {
+  const seq = ++lookup;
   const provider = providerSelect.value;
   const key = keyInput.value.trim();
   const base = baseInput.value.trim();
-  // An unauthenticated local server still lists its models; the hosted ones can't.
-  const live = key || provider === "custom" ? await fetchModelIds(provider, key, base) : [];
-  const ids = live.length ? live : (MODEL_HINTS[provider] ?? []);
-  if (providerSelect.value !== provider) return; // provider changed while awaiting
-  datalist.replaceChildren(...ids.map((id) => Object.assign(document.createElement("option"), { value: id })));
   modelInput.placeholder = DEFAULT_MODEL[provider] || (provider === "custom" ? t.modelRequired : t.modelPlaceholder);
+  // An unauthenticated local server still lists its models; the hosted ones can't.
+  if (!key && provider !== "custom") {
+    applyModels(MODEL_HINTS[provider] ?? [], false, { ids: [] });
+    return;
+  }
+  setModelStatus(t.modelsLoading, false);
+  const found = await fetchModelIds(provider, key, base);
+  if (seq !== lookup) return; // a newer lookup already answered
+  applyModels(found.ids.length ? found.ids : (MODEL_HINTS[provider] ?? []), found.ids.length > 0, found);
 }
+
+// Typing a key or a URL should look them up without waiting for a blur — but not
+// once per keystroke.
+function debounce(fn: () => void, ms: number): () => void {
+  let id = 0;
+  return () => {
+    clearTimeout(id);
+    id = setTimeout(fn, ms);
+  };
+}
+const lookupSoon = debounce(() => void refreshModelHints(), 800);
+
 providerSelect.addEventListener("change", () => {
   syncCustomRow();
   void refreshModelHints();
 });
-keyInput.addEventListener("change", refreshModelHints);
-baseInput.addEventListener("change", refreshModelHints);
+keyInput.addEventListener("input", lookupSoon);
+baseInput.addEventListener("input", lookupSoon);
+document.getElementById("refresh-models")!.addEventListener("click", () => void refreshModelHints());
 
 const list = document.getElementById("list")!;
 const err = document.getElementById("err")!;
@@ -140,6 +190,7 @@ const setText = (id: string, s: string) => {
     ["l-cprompt", t.chatPromptLabel],
     ["save-btn", t.save],
     ["reset-prompts", t.resetPrompts],
+    ["refresh-models", t.refreshModels],
   ] as const) {
     setText(id, s);
   }

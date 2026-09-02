@@ -36,6 +36,9 @@ optional **Model**, Save. Then Extract again. Defaults: Anthropic
 
 The **Model** box autocompletes from the provider's own `/v1/models` once a key
 is set (falls back to a short built-in list); it's free text, so any id works.
+The line under it says where the list came from — live, built-in, or the reason
+the lookup failed (a `401` from a bad key shows as one). It re-runs as you type a
+key or URL, and **Refresh** forces it.
 
 ## Your own endpoint
 
@@ -46,9 +49,14 @@ Ollama, LM Studio, OpenRouter, a self-hosted vLLM, a company gateway. It adds a
 for `localhost` / `127.0.0.1`.
 
 **Model** is required here — there is no sensible default for an endpoint the
-extension has never seen. The autocomplete still tries the server's `/v1/models`
-and stays empty if it doesn't implement it. The **LLM key** may be left blank,
-which is what a local server usually wants.
+extension has never seen. The autocomplete lists whatever the server returns from
+`/models`, sorted alphabetically, and reads both `{"data":[…]}` and a bare array,
+of objects or of plain strings. If the server doesn't implement the route you get
+the status back rather than an empty box, and you can just type the id. The **LLM
+key** may be left blank, which is what a local server usually wants.
+
+Until you Save, the model lookup says so instead of failing: the host grant is
+what makes the request possible at all.
 
 Saving asks Chrome for access to that one host (extension pages are subject to
 CORS, so an undeclared host is simply unreachable). Decline and the setting isn't
