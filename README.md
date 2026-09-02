@@ -24,7 +24,7 @@ pnpm build          # → dist/   (pnpm watch to rebuild on save)
 3. Open a YouTube watch page that has captions
 4. Click the unwatch icon (side panel)
 5. **Library & settings** → pick a provider + paste an LLM key, Save
-6. **Extract from this video** — verdict + claim bullets. **Chat** (header) opens the ask panel
+6. **Extract from this video** — verdict + claim bullets. **Chat** (header) opens the chat page in a new tab
 
 After every `pnpm build`, hit the reload ↻ on the extension card.
 
@@ -51,7 +51,8 @@ spend cap.
 - Verdict is **vs your own saved bullets**, not "AI videos in general":
   `new`/`nuevo` | `seen`/`ya_visto` | `mixed`/`mixto` (per language). First video:
   no past list.
-- Chat in the panel on **this** transcript (stuffed, no RAG). Answers cite
+- Chat on a separate page (`chat.html?v=…`) against **this** transcript (stuffed,
+  no RAG). Answers cite
   `t=MM:SS`; the timestamp seeks the player.
 - **Notes** / **Conclusiones**: one call from the filter card + chat → clipboard
   + saved row.
@@ -74,7 +75,8 @@ src/
   background.ts   service worker: opens the side panel on the action click
   content.ts      videoId/title/duration + transcript (youtube-transcript lib,
                   DOM transcript-panel scrape as fallback)
-  sidepanel.ts    filter → ask → conclusiones          (+ sidepanel.html)
+  sidepanel.ts    extract + result card                (+ sidepanel.html)
+  chat.ts         ask / conclusiones on one video      (+ chat.html)
   library.ts      saved list + settings                (+ library.html)
   shared.ts       settings in chrome.storage.local
   videos.ts       store + orchestration (filter/chat/conclusiones/list/get)

@@ -33,6 +33,8 @@ header {
   margin-bottom: 10px;
 }
 .hdr-btns { display: flex; gap: 6px; flex: none; }
+details { margin: 8px 0; }
+summary { cursor: pointer; color: var(--muted); font-size: 12px; }
 
 h1 {
   font-size: 15px;

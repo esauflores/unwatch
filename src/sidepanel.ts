@@ -1,15 +1,12 @@
 import { errMsg, renderMarkdown, settings, UI } from "./shared";
-import { chatVideo, conclusionesVideo, filterVideo, getVideo } from "./videos";
+import { filterVideo, getVideo } from "./videos";
 import type { Video } from "./schema";
 
 type Meta = { videoId: string; title?: string; duration?: number };
 
 const err = document.getElementById("err")!;
 const out = document.getElementById("out")!;
-const chatEl = document.getElementById("chat")!;
-const q = document.getElementById("q") as HTMLTextAreaElement;
 const metaEl = document.getElementById("meta")!;
-const askPanel = document.getElementById("ask-panel")!;
 const btn = (id: string) => document.getElementById(id) as HTMLButtonElement;
 
 let videoId = "";
@@ -38,35 +35,13 @@ function setMeta(p: Meta): void {
   metaEl.textContent = (p.title || p.videoId) + d;
 }
 
-function seek(t: number): void {
-  send({ type: "unwatch:seek", t }).catch(() => {});
+function seek(sec: number): void {
+  send({ type: "unwatch:seek", t: sec }).catch(() => {});
 }
-
-const renderMd = (el: HTMLElement, text: string): void => renderMarkdown(el, text, seek);
 
 function showVideo(v: Video): void {
-  btn("chat-toggle").hidden = false; // an extracted video exists → chat is available
-  renderMd(out, v.filter_md ?? "");
-  const parts: string[] = [];
-  for (const turn of v.chat_json ?? []) {
-    parts.push(`${turn.role === "user" ? "Q" : "A"}: ${turn.content}`);
-  }
-  if (v.conclusiones_md) parts.push(`## ${t.notes}\n${v.conclusiones_md}`);
-  const raw = parts.join("\n\n");
-  chatEl.dataset.raw = raw;
-  renderMd(chatEl, raw);
-}
-
-function appendChat(block: string): void {
-  const raw = chatEl.dataset.raw ? `${chatEl.dataset.raw}\n\n${block}` : block;
-  chatEl.dataset.raw = raw;
-  renderMd(chatEl, raw);
-}
-
-async function ensureVideo(): Promise<void> {
-  const p = await send({ type: "unwatch:meta" });
-  if (!videoId) throw new Error("filter a video first");
-  if (p.videoId !== videoId) throw new Error("filter this video first");
+  btn("chat-open").hidden = false; // an extracted video exists → Chat page is available
+  renderMarkdown(out, v.filter_md ?? "", seek);
 }
 
 // Disable the button and mark it busy while its async work runs, so a slow
@@ -95,27 +70,8 @@ btn("run").onclick = () =>
     showVideo(await filterVideo({ videoId: p.videoId, title: p.title, cues: p.cues }));
   });
 
-btn("ask").onclick = () => {
-  const message = q.value.trim();
-  if (!message) return;
-  void busy("ask", async () => {
-    await ensureVideo();
-    const { answer } = await chatVideo(videoId, message);
-    q.value = "";
-    appendChat(`Q: ${message}\nA: ${answer}`);
-  });
-};
-
-btn("conc").onclick = () =>
-  void busy("conc", async () => {
-    await ensureVideo();
-    const { conclusiones_md } = await conclusionesVideo(videoId);
-    await navigator.clipboard.writeText(conclusiones_md);
-    appendChat(`## ${t.notes} (${t.copied})\n${conclusiones_md}`);
-  });
-
-btn("chat-toggle").onclick = () => {
-  askPanel.hidden = !askPanel.hidden;
+btn("chat-open").onclick = () => {
+  if (videoId) chrome.tabs.create({ url: chrome.runtime.getURL(`chat.html?v=${videoId}`) });
 };
 
 document.getElementById("lib")!.onclick = () => {
@@ -125,11 +81,8 @@ document.getElementById("lib")!.onclick = () => {
 (async () => {
   t = UI[(await settings()).lang];
   btn("run").textContent = t.filter;
-  btn("chat-toggle").textContent = t.chat;
-  btn("ask").textContent = t.ask;
-  btn("conc").textContent = t.notes;
+  btn("chat-open").textContent = t.chat;
   btn("lib").textContent = t.library;
-  q.placeholder = t.askPlaceholder;
   try {
     const p = await send({ type: "unwatch:meta" });
     setMeta(p);

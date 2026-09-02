@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>unwatch — chat</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>unwatch</h1>
+      <button id="lib" class="ghost">Library &amp; settings</button>
+    </header>
+    <p id="meta"></p>
+    <p id="err" class="err"></p>
+    <details id="context">
+      <summary>Extract</summary>
+      <div id="out" class="md"></div>
+    </details>
+    <textarea id="q" placeholder="Ask this transcript…"></textarea>
+    <div class="row">
+      <button id="ask">Ask</button>
+      <button id="conc">Notes</button>
+    </div>
+    <section id="chat" class="md"></section>
+    <script src="chat.js"></script>
+  </body>
+</html>
