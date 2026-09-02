@@ -1,6 +1,8 @@
-import { bindSettingsForm, errMsg, renderMarkdown, settings } from "./shared";
+import { bindSettingsForm, errMsg, renderMarkdown, settings, UI } from "./shared";
 import { verdictLabel } from "./schema";
 import { deleteVideo, listVideos } from "./videos";
+
+let t = UI.en;
 
 const form = document.getElementById("settings") as HTMLFormElement;
 bindSettingsForm(form);
@@ -76,7 +78,7 @@ async function refreshModelHints(): Promise<void> {
   const ids = live.length ? live : (MODEL_HINTS[provider] ?? []);
   if (providerSelect.value !== provider) return; // provider changed while awaiting
   datalist.replaceChildren(...ids.map((id) => Object.assign(document.createElement("option"), { value: id })));
-  modelInput.placeholder = DEFAULT_MODEL[provider] || "default for provider";
+  modelInput.placeholder = DEFAULT_MODEL[provider] || t.modelPlaceholder;
 }
 providerSelect.addEventListener("change", refreshModelHints);
 keyInput.addEventListener("change", refreshModelHints);
@@ -84,12 +86,29 @@ keyInput.addEventListener("change", refreshModelHints);
 const list = document.getElementById("list")!;
 const err = document.getElementById("err")!;
 
+const setText = (id: string, s: string) => {
+  const el = document.getElementById(id);
+  if (el) el.textContent = s;
+};
+
 (async () => {
   const { lang, provider, llmKey } = await settings();
+  t = UI[lang];
+  for (const [id, s] of [
+    ["h-settings", t.settingsHeading],
+    ["h-saved", t.savedHeading],
+    ["l-lang", t.languageLabel],
+    ["l-provider", t.providerLabel],
+    ["l-model", t.modelLabel],
+    ["l-key", t.keyLabel],
+    ["save-btn", t.save],
+  ] as const) {
+    setText(id, s);
+  }
   providerSelect.value = provider;
   keyInput.value = llmKey;
   void refreshModelHints();
-  const empty = "Nothing saved yet. Extract a video from the side panel.";
+  const empty = t.nothingSaved;
   try {
     const videos = await listVideos();
     if (!videos.length) {
@@ -101,8 +120,8 @@ const err = document.getElementById("err")!;
       el.className = "item";
       el.innerHTML =
         `<div class="item-head"><strong></strong><span class="verdict"></span></div>` +
-        `<details><summary>Extract</summary><div class="md"></div></details>` +
-        `<div class="row"><button class="copy">Copy</button><button class="del">Delete</button></div>`;
+        `<details><summary>${t.extract}</summary><div class="md"></div></details>` +
+        `<div class="row"><button class="copy">${t.copy}</button><button class="del">${t.del}</button></div>`;
       el.querySelector("strong")!.textContent = v.title;
       const tag = el.querySelector(".verdict") as HTMLElement;
       tag.textContent = verdictLabel(v.verdict, lang);
@@ -111,7 +130,7 @@ const err = document.getElementById("err")!;
       renderMarkdown(el.querySelector(".md")!, raw);
       el.querySelector(".copy")!.addEventListener("click", () => navigator.clipboard.writeText(raw));
       el.querySelector(".del")!.addEventListener("click", async () => {
-        if (!confirm(`Delete "${v.title}"?`)) return;
+        if (!confirm(t.deletePrompt(v.title))) return;
         await deleteVideo(v.id);
         el.remove();
         if (!list.children.length) list.textContent = empty;

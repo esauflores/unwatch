@@ -1,6 +1,7 @@
 import "deep-chat"; // side-effect: registers the <deep-chat> element
 import type { DeepChat } from "deep-chat";
 import { renderMarkdown, settings, UI } from "./shared";
+import { verdictLabel } from "./schema";
 import { chatVideo, getVideo } from "./videos";
 
 const videoId = new URLSearchParams(location.search).get("v") ?? "";
@@ -36,15 +37,16 @@ btn("lib").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("libr
   const { lang } = await settings();
   const t = UI[lang];
   btn("lib").textContent = t.library;
+  document.getElementById("ctx-summary")!.textContent = t.extract;
 
   const v = videoId ? await getVideo(videoId) : undefined;
   if (!v) {
-    metaEl.textContent = "No extracted video — Extract one from the side panel first.";
+    metaEl.textContent = t.noVideoChat;
     dc.style.display = "none";
     return;
   }
   document.title = `unwatch — ${v.title}`;
-  metaEl.textContent = `${v.title}${v.verdict ? ` · ${v.verdict}` : ""}`;
+  metaEl.textContent = `${v.title}${v.verdict ? ` · ${verdictLabel(v.verdict, lang)}` : ""}`;
   renderMarkdown(out, v.filter_md ?? "", seek);
 
   dc.style.cssText = `width:100%;border:1px solid ${C.line};border-radius:10px;background-color:${C.panel}`;

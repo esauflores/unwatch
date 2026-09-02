@@ -6,35 +6,39 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header><h1>unwatch library</h1></header>
-    <h2>Settings</h2>
+    <header><h1>unwatch</h1></header>
+    <h2 id="h-settings">Settings</h2>
     <form id="settings">
       <label>
-        Language
+        <span id="l-lang">Language</span>
         <select name="lang">
           <option value="en">English</option>
           <option value="es">Español</option>
         </select>
       </label>
       <label>
-        Provider
+        <span id="l-provider">Provider</span>
         <select name="provider">
           <option value="anthropic">anthropic</option>
           <option value="openai">openai</option>
           <option value="gemini">gemini</option>
         </select>
       </label>
-      <label>Model (optional)
+      <label>
+        <span id="l-model">Model (optional)</span>
         <input name="model" list="model-suggestions" placeholder="default for provider" />
         <datalist id="model-suggestions"></datalist>
       </label>
-      <label>LLM key <input name="llmKey" type="password" autocomplete="off" /></label>
+      <label>
+        <span id="l-key">LLM key</span>
+        <input name="llmKey" type="password" autocomplete="off" />
+      </label>
       <div class="row">
-        <button class="primary" type="submit">Save</button>
+        <button id="save-btn" class="primary" type="submit">Save</button>
         <span data-saved class="ok"></span>
       </div>
     </form>
-    <h2>Saved</h2>
+    <h2 id="h-saved">Saved</h2>
     <p id="err" class="err"></p>
     <div id="list"></div>
     <script src="library.js"></script>

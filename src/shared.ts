@@ -14,32 +14,73 @@ const DEFAULTS: Settings = {
   lang: "en",
 };
 
-export const UI: Record<Lang, {
+type Strings = {
   filter: string;
   chat: string;
-  ask: string;
   library: string;
+  extract: string;
   askPlaceholder: string;
   noVideo: string;
-  copied: string;
-}> = {
+  noVideoChat: string;
+  settingsHeading: string;
+  savedHeading: string;
+  languageLabel: string;
+  providerLabel: string;
+  modelLabel: string;
+  modelPlaceholder: string;
+  keyLabel: string;
+  save: string;
+  saved: string;
+  nothingSaved: string;
+  copy: string;
+  del: string;
+  deletePrompt: (title: string) => string;
+};
+
+export const UI: Record<Lang, Strings> = {
   en: {
     filter: "Extract from this video",
     chat: "Chat",
-    ask: "Ask",
     library: "Library & settings",
+    extract: "Extract",
     askPlaceholder: "Ask this transcript…",
     noVideo: "Open a youtube.com/watch page, then reopen this panel.",
-    copied: "copied",
+    noVideoChat: "No extracted video — Extract one from the side panel first.",
+    settingsHeading: "Settings",
+    savedHeading: "Saved",
+    languageLabel: "Language",
+    providerLabel: "Provider",
+    modelLabel: "Model (optional)",
+    modelPlaceholder: "default for provider",
+    keyLabel: "LLM key",
+    save: "Save",
+    saved: "saved",
+    nothingSaved: "Nothing saved yet. Extract a video from the side panel.",
+    copy: "Copy",
+    del: "Delete",
+    deletePrompt: (title) => `Delete "${title}"?`,
   },
   es: {
     filter: "Extraer de este video",
     chat: "Chat",
-    ask: "Preguntar",
     library: "Biblioteca y ajustes",
+    extract: "Extracto",
     askPlaceholder: "Pregunta a esta transcripción…",
     noVideo: "Abre una página youtube.com/watch y reabre este panel.",
-    copied: "copiado",
+    noVideoChat: "Ningún video extraído — extrae uno desde el panel lateral primero.",
+    settingsHeading: "Ajustes",
+    savedHeading: "Guardados",
+    languageLabel: "Idioma",
+    providerLabel: "Proveedor",
+    modelLabel: "Modelo (opcional)",
+    modelPlaceholder: "predeterminado del proveedor",
+    keyLabel: "Clave del LLM",
+    save: "Guardar",
+    saved: "guardado",
+    nothingSaved: "Nada guardado aún. Extrae un video desde el panel lateral.",
+    copy: "Copiar",
+    del: "Eliminar",
+    deletePrompt: (title) => `¿Eliminar "${title}"?`,
   },
 };
 
@@ -119,12 +160,15 @@ export function bindSettingsForm(form: HTMLFormElement): void {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(form);
+    const lang: Lang = fd.get("lang") === "es" ? "es" : "en";
+    const langChanged = lang !== (await settings()).lang;
     await saveSettings({
       provider: String(fd.get("provider") || "anthropic"),
       model: String(fd.get("model") || ""),
       llmKey: String(fd.get("llmKey") || ""),
-      lang: fd.get("lang") === "es" ? "es" : "en",
+      lang,
     });
-    form.querySelector("[data-saved]")?.replaceChildren(document.createTextNode("saved"));
+    form.querySelector("[data-saved]")?.replaceChildren(document.createTextNode(UI[lang].saved));
+    if (langChanged) location.reload(); // re-render this page in the new language
   });
 }
