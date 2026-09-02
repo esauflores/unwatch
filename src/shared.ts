@@ -34,6 +34,7 @@ type Strings = {
   nothingSaved: string;
   copy: string;
   del: string;
+  transcript: string;
   deletePrompt: (title: string) => string;
 };
 
@@ -58,6 +59,7 @@ export const UI: Record<Lang, Strings> = {
     nothingSaved: "Nothing saved yet. Extract a video from the side panel.",
     copy: "Copy",
     del: "Delete",
+    transcript: "Transcript",
     deletePrompt: (title) => `Delete "${title}"?`,
   },
   es: {
@@ -80,6 +82,7 @@ export const UI: Record<Lang, Strings> = {
     nothingSaved: "Nada guardado aún. Extrae un video desde el panel lateral.",
     copy: "Copiar",
     del: "Eliminar",
+    transcript: "Transcripción",
     deletePrompt: (title) => `¿Eliminar "${title}"?`,
   },
 };

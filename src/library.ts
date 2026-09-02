@@ -1,6 +1,6 @@
 import { bindSettingsForm, errMsg, renderMarkdown, settings, UI } from "./shared";
-import { verdictLabel } from "./schema";
-import { deleteVideo, listVideos } from "./videos";
+import { formatTranscript, verdictLabel } from "./schema";
+import { deleteVideo, getVideo, listVideos } from "./videos";
 
 let t = UI.en;
 
@@ -121,7 +121,8 @@ const setText = (id: string, s: string) => {
       el.innerHTML =
         `<div class="item-head"><strong></strong><span class="verdict"></span></div>` +
         `<details><summary>${t.extract}</summary><div class="md"></div></details>` +
-        `<div class="row"><button class="copy">${t.copy}</button><button class="del">${t.del}</button></div>`;
+        `<div class="row"><button class="copy">${t.copy}</button>` +
+        `<button class="dl">${t.transcript}</button><button class="del">${t.del}</button></div>`;
       el.querySelector("strong")!.textContent = v.title;
       const tag = el.querySelector(".verdict") as HTMLElement;
       tag.textContent = verdictLabel(v.verdict, lang);
@@ -129,6 +130,16 @@ const setText = (id: string, s: string) => {
       const raw = v.filter_md ?? "";
       renderMarkdown(el.querySelector(".md")!, raw);
       el.querySelector(".copy")!.addEventListener("click", () => navigator.clipboard.writeText(raw));
+      el.querySelector(".dl")!.addEventListener("click", async () => {
+        const full = await getVideo(v.id);
+        if (!full?.transcript_json?.length) return;
+        const name = (v.title.replace(/[^\p{L}\p{N} _-]/gu, "").trim().slice(0, 80) || v.id) + ".txt";
+        const url = URL.createObjectURL(
+          new Blob([formatTranscript(full.transcript_json)], { type: "text/plain" }),
+        );
+        Object.assign(document.createElement("a"), { href: url, download: name }).click();
+        URL.revokeObjectURL(url);
+      });
       el.querySelector(".del")!.addEventListener("click", async () => {
         if (!confirm(t.deletePrompt(v.title))) return;
         await deleteVideo(v.id);

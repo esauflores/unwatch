@@ -55,7 +55,8 @@ spend cap.
   transcript + the extract (stuffed, no RAG). Answers cite `t=MM:SS`; the
   timestamp seeks the YouTube tab. Chat has the extract too, so "revise the
   bullets" works.
-- **Library**: saved videos (markdown body, copy) + settings.
+- **Library**: saved videos — collapsed extract, copy, download transcript
+  (`.txt`, `[M:SS]` lines), delete — plus settings.
 
 One stored row per video is both the library and the novelty pile:
 `id, title, created_at, verdict, filter_md, claims_md, transcript_json, chat_json`
