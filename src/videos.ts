@@ -69,7 +69,7 @@ export async function chatVideo(id: string, message: string): Promise<{ answer: 
   const { lang, ...llm } = await llmOpts();
   const answer = await complete({
     ...llm,
-    messages: chatMessages(video.title, video.transcript_json, video.chat_json, message, lang),
+    messages: chatMessages(video.title, video.filter_md, video.transcript_json, video.chat_json, message, lang),
   });
   video.chat_json.push({ role: "user", content: message }, { role: "assistant", content: answer });
   await save(videos);

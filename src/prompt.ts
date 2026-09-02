@@ -44,6 +44,7 @@ export function filterMessages(
 
 export function chatMessages(
   title: string,
+  filterMd: string,
   cues: Cue[],
   history: ChatTurn[],
   question: string,
@@ -53,9 +54,13 @@ export function chatMessages(
     {
       role: "system",
       content: [
-        `You answer questions about the YouTube video "${title}" using only its full transcript below.`,
-        "If the answer is not in the transcript, say so. Cite t=MM:SS. Be short unless asked for more.",
+        `You are helping the user work with the YouTube video "${title}".`,
+        "You have its full transcript and the skip/keep extract already generated from it.",
+        "Answer from the transcript and cite t=MM:SS. If asked to revise or rewrite the extract, do it from the transcript. If something is not in the transcript, say so. Be short unless asked for more.",
         respondIn(lang),
+        "",
+        "Extract:",
+        filterMd || "(none)",
         "",
         "Transcript:",
         formatTranscript(cues),
