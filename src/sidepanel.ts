@@ -115,5 +115,6 @@ document.getElementById("lib")!.onclick = () => {
     else videoId = "";
   } catch {
     videoId = "";
+    metaEl.textContent = "Open a youtube.com/watch page, then reopen this panel.";
   }
 })();
