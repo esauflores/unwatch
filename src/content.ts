@@ -108,8 +108,10 @@ function parseJson3(data: Json3): Cue[] {
 // doesn't like — so read text, guard empty, and fall back to the XML format.
 async function fetchCaptionBody(url: URL): Promise<string> {
   const res = await fetch(url);
+  const body = res.ok ? (await res.text()).trim() : "";
+  console.warn(`[unwatch] captions ${url.searchParams.get("fmt") || "xml"}: HTTP ${res.status}, ${body.length} bytes`);
   if (!res.ok) throw new Error(`caption fetch failed (${res.status})`);
-  return (await res.text()).trim();
+  return body;
 }
 
 function parseXml(xml: string): Cue[] {
@@ -152,7 +154,9 @@ async function captions(): Promise<Cue[]> {
     if (xmlBody) cues = parseXml(xmlBody);
   }
 
-  if (!cues.length) throw new Error("captions came back empty — YouTube may be blocking this track");
+  if (!cues.length) {
+    throw new Error("captions came back empty — an ad blocker or YouTube is blocking the timedtext request");
+  }
   return cues;
 }
 
