@@ -104,6 +104,24 @@ function parseJson3(data: Json3): Cue[] {
   return cues;
 }
 
+// YouTube's timedtext endpoint often 200s with an empty body for fmt=json3 it
+// doesn't like — so read text, guard empty, and fall back to the XML format.
+async function fetchCaptionBody(url: URL): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`caption fetch failed (${res.status})`);
+  return (await res.text()).trim();
+}
+
+function parseXml(xml: string): Cue[] {
+  const doc = new DOMParser().parseFromString(xml, "text/xml");
+  const cues: Cue[] = [];
+  for (const el of Array.from(doc.getElementsByTagName("text"))) {
+    const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
+    if (text) cues.push({ t: Number(el.getAttribute("start") ?? 0), text });
+  }
+  return cues;
+}
+
 async function captions(): Promise<Cue[]> {
   const pr = await playerResponse();
   const tracks = pr?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
@@ -114,12 +132,27 @@ async function captions(): Promise<Cue[]> {
     tracks.find((t) => String(t.languageCode ?? "").startsWith("es")) ||
     tracks.find((t) => !t.kind || t.kind !== "asr") ||
     tracks[0];
-  const url = new URL(track.baseUrl, location.origin);
-  url.searchParams.set("fmt", "json3");
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("could not fetch captions");
-  const cues = parseJson3(await res.json());
-  if (!cues.length) throw new Error("empty transcript");
+
+  const json3 = new URL(track.baseUrl, location.origin);
+  json3.searchParams.set("fmt", "json3");
+  const body = await fetchCaptionBody(json3);
+  let cues: Cue[] = [];
+  if (body) {
+    try {
+      cues = parseJson3(JSON.parse(body));
+    } catch {
+      /* not JSON — fall through to XML */
+    }
+  }
+
+  if (!cues.length) {
+    const xml = new URL(track.baseUrl, location.origin);
+    xml.searchParams.delete("fmt");
+    const xmlBody = await fetchCaptionBody(xml);
+    if (xmlBody) cues = parseXml(xmlBody);
+  }
+
+  if (!cues.length) throw new Error("captions came back empty — YouTube may be blocking this track");
   return cues;
 }
 
