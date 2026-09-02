@@ -144,8 +144,10 @@ form#settings {
 }
 .item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
 .item-head strong { flex: 1; min-width: 0; }
-.item .md { background: var(--panel-2); }
-.item button { margin-top: 10px; }
+.item .md { background: var(--panel-2); margin-top: 8px; }
+.item details { margin: 6px 0 0; }
+.item .row { margin: 8px 0 0; }
+.item .del:hover { color: #f2777a; border-color: #f2777a; }
 
 .verdict {
   flex: none;

@@ -36,6 +36,10 @@ export async function listVideos(): Promise<ListItem[]> {
   return [...(await load())].reverse().map(listItem);
 }
 
+export async function deleteVideo(id: string): Promise<void> {
+  await save((await load()).filter((v) => v.id !== id));
+}
+
 export async function filterVideo(input: { videoId: string; title: string; cues: Cue[] }): Promise<Video> {
   const videos = await load();
   const existing = videos.find((v) => v.id === input.videoId);

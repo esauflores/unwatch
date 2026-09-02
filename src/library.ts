@@ -1,6 +1,6 @@
 import { bindSettingsForm, errMsg, renderMarkdown, settings } from "./shared";
 import { verdictLabel } from "./schema";
-import { listVideos } from "./videos";
+import { deleteVideo, listVideos } from "./videos";
 
 const form = document.getElementById("settings") as HTMLFormElement;
 bindSettingsForm(form);
@@ -89,26 +89,33 @@ const err = document.getElementById("err")!;
   providerSelect.value = provider;
   keyInput.value = llmKey;
   void refreshModelHints();
+  const empty = "Nothing saved yet. Extract a video from the side panel.";
   try {
     const videos = await listVideos();
     if (!videos.length) {
-      list.textContent = "Nothing saved yet. Filter a video from the side panel.";
+      list.textContent = empty;
       return;
     }
     for (const v of videos) {
       const el = document.createElement("div");
       el.className = "item";
-      el.innerHTML = `<div class="item-head"><strong></strong><span class="verdict"></span></div><div class="md"></div>`;
+      el.innerHTML =
+        `<div class="item-head"><strong></strong><span class="verdict"></span></div>` +
+        `<details><summary>Extract</summary><div class="md"></div></details>` +
+        `<div class="row"><button class="copy">Copy</button><button class="del">Delete</button></div>`;
       el.querySelector("strong")!.textContent = v.title;
       const tag = el.querySelector(".verdict") as HTMLElement;
       tag.textContent = verdictLabel(v.verdict, lang);
       if (v.verdict) tag.dataset.v = v.verdict;
       const raw = v.filter_md ?? "";
       renderMarkdown(el.querySelector(".md")!, raw);
-      const copy = document.createElement("button");
-      copy.textContent = "Copy";
-      copy.onclick = () => navigator.clipboard.writeText(raw);
-      el.append(copy);
+      el.querySelector(".copy")!.addEventListener("click", () => navigator.clipboard.writeText(raw));
+      el.querySelector(".del")!.addEventListener("click", async () => {
+        if (!confirm(`Delete "${v.title}"?`)) return;
+        await deleteVideo(v.id);
+        el.remove();
+        if (!list.children.length) list.textContent = empty;
+      });
       list.append(el);
     }
   } catch (e) {
