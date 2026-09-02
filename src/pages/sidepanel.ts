@@ -1,11 +1,12 @@
 import "deep-chat"; // side-effect: registers the <deep-chat> element
 import type { DeepChat } from "deep-chat";
+
 import { type Lang, UI } from "@/lib/i18n";
 import { renderMarkdown } from "@/lib/markdown";
+import { formatTranscript, stripVerdictLine, verdictLabel, type Video } from "@/lib/schema";
 import { settings } from "@/lib/settings";
 import { errMsg } from "@/lib/util";
 import { chatVideo, filterVideo, getVideo } from "@/lib/videos";
-import { formatTranscript, stripVerdictLine, verdictLabel, type Video } from "@/lib/schema";
 
 type Meta = { videoId: string; title?: string; duration?: number };
 
@@ -82,7 +83,10 @@ function saveFile(name: string, text: string): void {
   URL.revokeObjectURL(url);
 }
 const fileBase = () =>
-  (current?.title ?? "unwatch").replace(/[^\p{L}\p{N} _-]/gu, "").trim().slice(0, 80) || "unwatch";
+  (current?.title ?? "unwatch")
+    .replace(/[^\p{L}\p{N} _-]/gu, "")
+    .trim()
+    .slice(0, 80) || "unwatch";
 const chatToMd = (v: Video) =>
   (v.chat_json ?? []).map((turn) => `${turn.role === "user" ? "Q" : "A"}: ${turn.content}`).join("\n\n");
 
@@ -207,7 +211,6 @@ async function refresh(): Promise<void> {
   loadingEl.hidden = false;
   try {
     const p = await send({ type: "unwatch:meta" });
-    console.log("[unwatch] refresh: meta =", p);
     setMeta(p);
     const v = await getVideo(p.videoId);
     if (v) showVideo(v);
@@ -231,21 +234,12 @@ function scheduleRefresh(): void {
   clearTimeout(refreshTimer);
   refreshTimer = setTimeout(() => void refresh(), 250);
 }
-chrome.tabs.onActivated.addListener(() => {
-  console.log("[unwatch] tab activated");
-  scheduleRefresh();
-});
+chrome.tabs.onActivated.addListener(scheduleRefresh);
 chrome.tabs.onUpdated.addListener((_id, info, tab) => {
-  if (info.url && tab.active) {
-    console.log("[unwatch] tab url changed", info.url);
-    scheduleRefresh();
-  }
+  if (info.url && tab.active) scheduleRefresh();
 });
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg?.type === "unwatch:navigated") {
-    console.log("[unwatch] got unwatch:navigated");
-    scheduleRefresh();
-  }
+  if (msg?.type === "unwatch:navigated") scheduleRefresh();
 });
 
 (async () => {

@@ -1,7 +1,5 @@
 import { YoutubeTranscript } from "youtube-transcript";
 
-console.log("[unwatch] content script loaded", location.href);
-
 type Cue = { t: number; text: string };
 
 const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -139,13 +137,11 @@ function onNav(): void {
   const id = videoId();
   if (id === lastId) return;
   lastId = id;
-  console.log("[unwatch] nav →", id, "(waiting for title)");
   const before = document.title;
   let tries = 0;
   const iv = setInterval(() => {
     if (document.title !== before || ++tries > 25) {
       clearInterval(iv);
-      console.log("[unwatch] notifying panel, title:", document.title);
       chrome.runtime.sendMessage({ type: "unwatch:navigated" }).catch(() => {});
     }
   }, 100);

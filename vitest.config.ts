@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+
 import { defineConfig } from "vitest/config";
 
 // esbuild reads `paths` from tsconfig.json; vitest needs the alias spelled out.

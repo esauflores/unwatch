@@ -51,7 +51,10 @@ export async function complete(opts: {
   if (!opts.apiKey) throw new Error("missing llm key — set one in Library settings");
 
   // The AI SDK rejects `role: "system"` inside `messages` — hoist it to `system`.
-  const system = opts.messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
+  const system = opts.messages
+    .filter((m) => m.role === "system")
+    .map((m) => m.content)
+    .join("\n\n");
   const rest = opts.messages.filter((m) => m.role !== "system") as ModelMessage[];
   const { text } = await generateText({
     model: model(opts.provider, opts.apiKey, opts.model),

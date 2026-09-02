@@ -1,8 +1,8 @@
 import { UI } from "@/lib/i18n";
 import { renderMarkdown } from "@/lib/markdown";
+import { formatTranscript, stripVerdictLine, verdictLabel } from "@/lib/schema";
 import { bindSettingsForm, DEFAULT_CHAT_PROMPT, DEFAULT_FILTER_PROMPT, settings } from "@/lib/settings";
 import { errMsg } from "@/lib/util";
-import { formatTranscript, stripVerdictLine, verdictLabel } from "@/lib/schema";
 import { deleteVideo, getVideo, listVideos } from "@/lib/videos";
 
 let t = UI.en;
@@ -144,10 +144,12 @@ const setText = (id: string, s: string) => {
       el.querySelector(".dl")!.addEventListener("click", async () => {
         const full = await getVideo(v.id);
         if (!full?.transcript_json?.length) return;
-        const name = (v.title.replace(/[^\p{L}\p{N} _-]/gu, "").trim().slice(0, 80) || v.id) + ".txt";
-        const url = URL.createObjectURL(
-          new Blob([formatTranscript(full.transcript_json)], { type: "text/plain" }),
-        );
+        const name =
+          (v.title
+            .replace(/[^\p{L}\p{N} _-]/gu, "")
+            .trim()
+            .slice(0, 80) || v.id) + ".txt";
+        const url = URL.createObjectURL(new Blob([formatTranscript(full.transcript_json)], { type: "text/plain" }));
         Object.assign(document.createElement("a"), { href: url, download: name }).click();
         URL.revokeObjectURL(url);
       });

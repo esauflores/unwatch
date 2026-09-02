@@ -1,12 +1,32 @@
 import { expect, it, vi } from "vitest";
+
 import { complete, demoComplete } from "@/lib/llm";
-import { extractClaimsMd, formatTranscript, parseVerdict, stripVerdictLine } from "@/lib/schema";
 import { renderMarkdown } from "@/lib/markdown";
+import { extractClaimsMd, formatTranscript, parseVerdict, stripVerdictLine } from "@/lib/schema";
 
 // Tiny fake DOM so renderMarkdown runs in the node env (no jsdom dependency).
-type FakeNode = { tag: string; className: string; type: string; children: FakeNode[]; text: string; onclick?: () => void };
+type FakeNode = {
+  tag: string;
+  className: string;
+  type: string;
+  children: FakeNode[];
+  text: string;
+  onclick?: () => void;
+};
 function fakeEl(tag: string): FakeNode {
-  const n: any = { tag, className: "", type: "", children: [], text: "", get textContent() { return this._t ?? this.children.map((c: FakeNode) => c.text || (c as any).textContent).join(""); }, set textContent(v: string) { this._t = v; } };
+  const n: any = {
+    tag,
+    className: "",
+    type: "",
+    children: [],
+    text: "",
+    get textContent() {
+      return this._t ?? this.children.map((c: FakeNode) => c.text || (c as any).textContent).join("");
+    },
+    set textContent(v: string) {
+      this._t = v;
+    },
+  };
   n.appendChild = (c: FakeNode) => (n.children.push(c), c);
   n.replaceChildren = () => (n.children.length = 0);
   n.addEventListener = (_: string, fn: () => void) => (n.onclick = fn);
@@ -38,7 +58,12 @@ it("stripVerdictLine drops the leading verdict line, keeps real content", () => 
 });
 
 it("formatTranscript stamps MM:SS", () => {
-  expect(formatTranscript([{ t: 12, text: "hi" }, { t: 100, text: "bye" }])).toBe("[0:12] hi\n[1:40] bye");
+  expect(
+    formatTranscript([
+      { t: 12, text: "hi" },
+      { t: 100, text: "bye" },
+    ]),
+  ).toBe("[0:12] hi\n[1:40] bye");
 });
 
 it("demoComplete branches on message content (English default)", () => {
@@ -71,6 +96,15 @@ it("renderMarkdown: bullets, bold, and a seeking timestamp button", () => {
 });
 
 it("complete falls back to demo, and rejects a real provider with no key", async () => {
-  expect(await complete({ provider: "demo", apiKey: "", model: "demo", messages: [{ role: "user", content: "Transcript:" }] })).toMatch(/^new/);
-  await expect(complete({ provider: "openai", apiKey: "", model: "gpt", messages: [] })).rejects.toThrow(/missing llm key/);
+  expect(
+    await complete({
+      provider: "demo",
+      apiKey: "",
+      model: "demo",
+      messages: [{ role: "user", content: "Transcript:" }],
+    }),
+  ).toMatch(/^new/);
+  await expect(complete({ provider: "openai", apiKey: "", model: "gpt", messages: [] })).rejects.toThrow(
+    /missing llm key/,
+  );
 });

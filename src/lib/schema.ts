@@ -63,6 +63,6 @@ export function formatTranscript(cues: Cue[]): string {
 }
 
 export function listItem(v: Video): ListItem {
-  const { transcript_json, chat_json, ...rest } = v;
+  const { transcript_json: _t, chat_json: _c, ...rest } = v;
   return rest;
 }

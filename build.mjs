@@ -1,5 +1,6 @@
-import { basename } from "node:path";
 import { cp, rm } from "node:fs/promises";
+import { basename } from "node:path";
+
 import * as esbuild from "esbuild";
 
 const outdir = "dist";
@@ -13,12 +14,7 @@ for (const f of assets) {
 }
 
 const ctx = await esbuild.context({
-  entryPoints: [
-    "src/pages/background.ts",
-    "src/pages/content.ts",
-    "src/pages/sidepanel.ts",
-    "src/pages/library.ts",
-  ],
+  entryPoints: ["src/pages/background.ts", "src/pages/content.ts", "src/pages/sidepanel.ts", "src/pages/library.ts"],
   outdir,
   outbase: "src/pages",
   bundle: true,
