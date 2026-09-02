@@ -73,7 +73,7 @@ src/
   library.ts      saved list + settings                (+ library.html)
   shared.ts       settings in chrome.storage.local
   videos.ts       store + orchestration (filter/chat/conclusiones/list/get)
-  llm.ts          BYOK: anthropic | openai | gemini | demo
+  llm.ts          BYOK via Vercel AI SDK: anthropic | openai | gemini | demo
   prompt.ts       filter / chat / conclusiones prompts
   schema.ts       types + pure helpers
   *.test.ts       pure logic + the demo flow through a stubbed storage

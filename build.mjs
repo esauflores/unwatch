@@ -17,6 +17,7 @@ const ctx = await esbuild.context({
   bundle: true,
   format: "iife",
   target: "chrome120",
+  minify: !watch,
   logLevel: "info",
 });
 
