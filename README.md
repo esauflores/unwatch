@@ -5,7 +5,7 @@ Skip a YouTube video from its captions. Filter → ask → save bullets.
 Oliver runs 10–15 videos/podcasts a day and doesn't watch them. In Claude that
 loop is ~10 min each: summary → skip if it's more of the same → ask what he
 actually cares about. unwatch puts that on the watch page as a side panel with
-**Extract** and **Chat** tabs.
+**Extract**, **Chat** and **Download** tabs.
 
 A Chrome MV3 extension, TypeScript, bundled with esbuild. **No server:** the LLM
 call is BYOK straight from the extension (via the Vercel AI SDK), and every video
@@ -24,7 +24,7 @@ pnpm build          # → dist/   (pnpm watch to rebuild on save)
 3. Open a YouTube watch page that has captions
 4. Click the unwatch icon (side panel)
 5. **Library & settings** → pick a provider + paste an LLM key, Save
-6. **Extract from this video** — verdict + claim bullets. The **Chat** tab (same panel) unlocks after
+6. **Extract from this video** — verdict + claim bullets. **Chat** and **Download** tabs unlock after
 
 After every `pnpm build`, hit the reload ↻ on the extension card.
 
@@ -60,8 +60,10 @@ spend cap.
 - **Chat** tab (side panel, deep-chat UI) against **this** transcript + the
   extract (stuffed, no RAG). Answers cite `t=MM:SS`; Chat has the extract too, so
   "revise the bullets" works. Unlocks once the video is extracted.
-- **Library**: saved videos — collapsed extract, copy, download transcript
-  (`.txt`, `[M:SS]` lines), delete — plus settings.
+- **Download** tab: one button each for transcript (`.txt`, `[M:SS]`), extract
+  (`.md`), and chat (`.md`) of the current video.
+- **Library**: saved videos — collapsed extract, copy, download transcript,
+  delete — plus settings.
 
 One stored row per video is both the library and the novelty pile:
 `id, title, created_at, verdict, filter_md, claims_md, transcript_json, chat_json`
@@ -99,7 +101,7 @@ src/
   background.ts   service worker: opens the side panel on the action click
   content.ts      videoId/title/duration + transcript (youtube-transcript lib,
                   DOM transcript-panel scrape as fallback)
-  sidepanel.ts    Extract + Chat tabs (deep-chat UI)    (+ sidepanel.html)
+  sidepanel.ts    Extract | Chat | Download tabs         (+ sidepanel.html)
   library.ts      saved list + settings                (+ library.html)
   shared.ts       settings in chrome.storage.local
   videos.ts       store + orchestration (filter/chat/list/get)

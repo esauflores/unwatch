@@ -92,6 +92,7 @@ type Strings = {
   filterPromptLabel: string;
   chatPromptLabel: string;
   resetPrompts: string;
+  downloadTab: string;
   deletePrompt: (title: string) => string;
 };
 
@@ -120,6 +121,7 @@ export const UI: Record<Lang, Strings> = {
     filterPromptLabel: "Extract prompt",
     chatPromptLabel: "Chat prompt",
     resetPrompts: "Reset prompts",
+    downloadTab: "Download",
     deletePrompt: (title) => `Delete "${title}"?`,
   },
   es: {
@@ -146,6 +148,7 @@ export const UI: Record<Lang, Strings> = {
     filterPromptLabel: "Prompt de extracto",
     chatPromptLabel: "Prompt de chat",
     resetPrompts: "Restablecer prompts",
+    downloadTab: "Descargar",
     deletePrompt: (title) => `¿Eliminar "${title}"?`,
   },
 };

@@ -3,7 +3,7 @@ import type { DeepChat } from "deep-chat";
 import { errMsg, renderMarkdown, settings, UI } from "./shared";
 import type { Lang } from "./shared";
 import { chatVideo, filterVideo, getVideo } from "./videos";
-import { stripVerdictLine, verdictLabel, type Video } from "./schema";
+import { formatTranscript, stripVerdictLine, verdictLabel, type Video } from "./schema";
 
 type Meta = { videoId: string; title?: string; duration?: number };
 
@@ -12,6 +12,7 @@ const out = document.getElementById("out")!;
 const metaEl = document.getElementById("meta")!;
 const viewExtract = document.getElementById("view-extract")!;
 const viewChat = document.getElementById("view-chat")!;
+const viewDownload = document.getElementById("view-download")!;
 const dc = document.getElementById("dc") as DeepChat;
 const btn = (id: string) => document.getElementById(id) as HTMLButtonElement;
 
@@ -19,6 +20,7 @@ let videoId = "";
 let lang: Lang = "en";
 let t = UI.en;
 let chatReady = false;
+let current: Video | null = null;
 
 const C = {
   panel: "#16181c",
@@ -61,13 +63,26 @@ function fitChat(): void {
   dc.style.height = `${Math.max(280, window.innerHeight - dc.getBoundingClientRect().top - 14)}px`;
 }
 
-function showView(view: "extract" | "chat"): void {
+type View = "extract" | "chat" | "download";
+function showView(view: View): void {
   viewExtract.hidden = view !== "extract";
   viewChat.hidden = view !== "chat";
-  btn("tab-extract").classList.toggle("active", view === "extract");
-  btn("tab-chat").classList.toggle("active", view === "chat");
+  viewDownload.hidden = view !== "download";
+  for (const v of ["extract", "chat", "download"] as const) {
+    btn(`tab-${v}`).classList.toggle("active", view === v);
+  }
   if (view === "chat") fitChat();
 }
+
+function saveFile(name: string, text: string): void {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+  Object.assign(document.createElement("a"), { href: url, download: name }).click();
+  URL.revokeObjectURL(url);
+}
+const fileBase = () =>
+  (current?.title ?? "unwatch").replace(/[^\p{L}\p{N} _-]/gu, "").trim().slice(0, 80) || "unwatch";
+const chatToMd = (v: Video) =>
+  (v.chat_json ?? []).map((turn) => `${turn.role === "user" ? "Q" : "A"}: ${turn.content}`).join("\n\n");
 
 // One-time deep-chat wiring, once a video has been extracted for this tab.
 function setupChat(v: Video): void {
@@ -113,6 +128,7 @@ function setupChat(v: Video): void {
 }
 
 function showVideo(v: Video): void {
+  current = v;
   const vd = document.getElementById("verdict") as HTMLElement;
   vd.hidden = !v.verdict;
   if (v.verdict) {
@@ -121,6 +137,7 @@ function showVideo(v: Video): void {
   }
   renderMarkdown(out, stripVerdictLine(v.filter_md ?? ""), seek);
   setupChat(v);
+  btn("tab-download").disabled = false;
 }
 
 // Disable the button and mark it busy while its async work runs, so a slow
@@ -151,6 +168,15 @@ btn("run").onclick = () =>
 
 btn("tab-extract").onclick = () => showView("extract");
 btn("tab-chat").onclick = () => showView("chat");
+btn("tab-download").onclick = async () => {
+  if (videoId) current = (await getVideo(videoId)) ?? current; // pick up the latest chat turns
+  btn("dl-chat").disabled = !current?.chat_json?.length;
+  showView("download");
+};
+btn("dl-transcript").onclick = () =>
+  current && saveFile(`${fileBase()} — transcript.txt`, formatTranscript(current.transcript_json));
+btn("dl-extract").onclick = () => current && saveFile(`${fileBase()} — extract.md`, current.filter_md ?? "");
+btn("dl-chat").onclick = () => current && saveFile(`${fileBase()} — chat.md`, chatToMd(current));
 btn("lib").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("library.html") });
 
 (async () => {
@@ -159,6 +185,10 @@ btn("lib").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("libr
   btn("run").textContent = t.filter;
   btn("tab-extract").textContent = t.extract;
   btn("tab-chat").textContent = t.chat;
+  btn("tab-download").textContent = t.downloadTab;
+  btn("dl-transcript").textContent = t.transcript;
+  btn("dl-extract").textContent = t.extract;
+  btn("dl-chat").textContent = t.chat;
   btn("lib").textContent = t.library;
   try {
     const p = await send({ type: "unwatch:meta" });

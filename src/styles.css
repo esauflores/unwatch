@@ -49,6 +49,7 @@ body.panel { max-width: none; }
 .tab:disabled { opacity: 0.4; cursor: default; }
 #verdict { display: inline-block; margin: 10px 0 4px; }
 #verdict[hidden] { display: none; }
+#view-download button { margin-top: 8px; }
 details { margin: 8px 0; }
 summary { cursor: pointer; color: var(--muted); font-size: 12px; }
 

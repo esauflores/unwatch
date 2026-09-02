@@ -13,6 +13,7 @@
     <div class="tabs">
       <button id="tab-extract" class="tab active" data-view="extract">Extract</button>
       <button id="tab-chat" class="tab" data-view="chat" disabled>Chat</button>
+      <button id="tab-download" class="tab" data-view="download" disabled>Download</button>
     </div>
     <p id="meta"></p>
     <p id="err" class="err"></p>
@@ -23,6 +24,11 @@
     </section>
     <section id="view-chat" hidden>
       <deep-chat id="dc"></deep-chat>
+    </section>
+    <section id="view-download" hidden>
+      <button id="dl-transcript" class="block">Transcript</button>
+      <button id="dl-extract" class="block">Extract</button>
+      <button id="dl-chat" class="block">Chat</button>
     </section>
     <script src="sidepanel.js"></script>
   </body>
