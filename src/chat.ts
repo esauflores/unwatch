@@ -1,4 +1,5 @@
-import { DeepChat } from "deep-chat";
+import "deep-chat"; // side-effect: registers the <deep-chat> element
+import type { DeepChat } from "deep-chat";
 import { errMsg, renderMarkdown, settings, UI } from "./shared";
 import { chatVideo, conclusionesVideo, getVideo } from "./videos";
 
