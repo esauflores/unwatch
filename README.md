@@ -1,6 +1,6 @@
 # Unwatch
 
-Skip a YouTube video from its captions. Filter → ask → save bullets.
+Skip a YouTube video from its transcript. Extract → chat → save.
 
 Oliver runs 10–15 videos/podcasts a day and doesn't watch them. In Claude that
 loop is ~10 min each: summary → skip if it's more of the same → ask what he
@@ -37,8 +37,9 @@ optional **Model**, Save. Then Extract again. Defaults: Anthropic
 The **Model** box autocompletes from the provider's own `/v1/models` once a key
 is set (falls back to a short built-in list); it's free text, so any id works.
 
-**Language** (Library → `English` / `Español`, default English) switches both the
-panel labels and the language the model answers in. One mode at a time, no mixing.
+**Language** (Library → `English` / `Español`) switches both the panel labels and
+the language the model answers in. One mode at a time, no mixing. First run
+follows your browser's UI language; after that it's whatever you saved.
 
 **Prompts** — Library has an editable **Extract prompt** and **Chat prompt**, each
 with a per-language default and a **Reset prompts** button. `{verdict}` / `{overlap}`
