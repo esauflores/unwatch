@@ -1,5 +1,5 @@
 import { complete, defaults, type Provider } from "./llm";
-import { chatMessages, conclusionesMessages, filterMessages } from "./prompt";
+import { chatMessages, filterMessages } from "./prompt";
 import { type Cue, extractClaimsMd, type ListItem, listItem, parseVerdict, type Video } from "./schema";
 import { settings } from "./shared";
 
@@ -56,7 +56,6 @@ export async function filterVideo(input: { videoId: string; title: string; cues:
     claims_md: extractClaimsMd(filter_md),
     transcript_json: input.cues,
     chat_json: existing?.chat_json ?? [],
-    conclusiones_md: existing?.conclusiones_md ?? "",
   };
   await save(put(videos, video));
   return video;
@@ -74,18 +73,4 @@ export async function chatVideo(id: string, message: string): Promise<{ answer: 
   video.chat_json.push({ role: "user", content: message }, { role: "assistant", content: answer });
   await save(videos);
   return { answer };
-}
-
-export async function conclusionesVideo(id: string): Promise<{ conclusiones_md: string }> {
-  const videos = await load();
-  const video = videos.find((v) => v.id === id);
-  if (!video) throw new Error("filter this video first");
-  const { lang, ...llm } = await llmOpts();
-  const conclusiones_md = await complete({
-    ...llm,
-    messages: conclusionesMessages(video.title, video.filter_md, video.chat_json, lang),
-  });
-  video.conclusiones_md = conclusiones_md;
-  await save(videos);
-  return { conclusiones_md };
 }

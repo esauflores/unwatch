@@ -15,11 +15,6 @@ export const defaults: Record<Exclude<Provider, "demo">, string> = {
 export function demoComplete(messages: ChatMessage[]): string {
   const es = messages.some((m) => /Responde en español/.test(m.content));
   const user = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
-  if (user.includes("Write the notes.")) {
-    return es
-      ? "- Idea demo a partir del chat.\n- Anótalo si preguntas a un modelo real."
-      : "- Demo takeaway from the chat.\n- Worth a note if you ask a real model.";
-  }
   if (user.includes("Question:")) {
     return es
       ? "Respuesta demo (t=00:12). Elige un proveedor y añade una clave para una real."

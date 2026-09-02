@@ -4,8 +4,8 @@ Skip a YouTube video from its captions. Filter → ask → save bullets.
 
 Oliver runs 10–15 videos/podcasts a day and doesn't watch them. In Claude that
 loop is ~10 min each: summary → skip if it's more of the same → ask what he
-actually cares about → pull article-ready conclusiones. unwatch puts that on the
-watch page as a side panel.
+actually cares about. unwatch puts that on the watch page as a side panel plus a
+chat page.
 
 A Chrome MV3 extension, TypeScript, bundled with esbuild. **No server:** the LLM
 call is BYOK straight from the extension (via the Vercel AI SDK), and every video
@@ -51,15 +51,14 @@ spend cap.
 - Verdict is **vs your own saved bullets**, not "AI videos in general":
   `new`/`nuevo` | `seen`/`ya_visto` | `mixed`/`mixto` (per language). First video:
   no past list.
-- Chat on a separate page (`chat.html?v=…`) against **this** transcript (stuffed,
-  no RAG). Answers cite
-  `t=MM:SS`; the timestamp seeks the player.
-- **Notes** / **Conclusiones**: one call from the filter card + chat → clipboard
-  + saved row.
+- Chat on a separate page (`chat.html?v=…`, deep-chat UI) against **this**
+  transcript + the extract (stuffed, no RAG). Answers cite `t=MM:SS`; the
+  timestamp seeks the YouTube tab. Chat has the extract too, so "revise the
+  bullets" works.
 - **Library**: saved videos (markdown body, copy) + settings.
 
 One stored row per video is both the library and the novelty pile:
-`id, title, created_at, verdict, filter_md, claims_md, transcript_json, chat_json, conclusiones_md`
+`id, title, created_at, verdict, filter_md, claims_md, transcript_json, chat_json`
 
 Out of scope: slide OCR / frame extraction, RAG / embeddings, transcription when
 there are no captions, Spotify / Apple / paste-a-URL, a search box or cards UI,
@@ -76,12 +75,12 @@ src/
   content.ts      videoId/title/duration + transcript (youtube-transcript lib,
                   DOM transcript-panel scrape as fallback)
   sidepanel.ts    extract + result card                (+ sidepanel.html)
-  chat.ts         ask / conclusiones on one video      (+ chat.html, deep-chat UI)
+  chat.ts         chat on one video                    (+ chat.html, deep-chat UI)
   library.ts      saved list + settings                (+ library.html)
   shared.ts       settings in chrome.storage.local
-  videos.ts       store + orchestration (filter/chat/conclusiones/list/get)
+  videos.ts       store + orchestration (filter/chat/list/get)
   llm.ts          BYOK via Vercel AI SDK: anthropic | openai | gemini | demo
-  prompt.ts       filter / chat / conclusiones prompts
+  prompt.ts       filter / chat prompts
   schema.ts       types + pure helpers
   *.test.ts       pure logic + the demo flow through a stubbed storage
 ```

@@ -18,7 +18,6 @@ export const UI: Record<Lang, {
   filter: string;
   chat: string;
   ask: string;
-  notes: string;
   library: string;
   askPlaceholder: string;
   noVideo: string;
@@ -28,7 +27,6 @@ export const UI: Record<Lang, {
     filter: "Extract from this video",
     chat: "Chat",
     ask: "Ask",
-    notes: "Notes",
     library: "Library & settings",
     askPlaceholder: "Ask this transcript…",
     noVideo: "Open a youtube.com/watch page, then reopen this panel.",
@@ -38,7 +36,6 @@ export const UI: Record<Lang, {
     filter: "Extraer de este video",
     chat: "Chat",
     ask: "Preguntar",
-    notes: "Conclusiones",
     library: "Biblioteca y ajustes",
     askPlaceholder: "Pregunta a esta transcripción…",
     noVideo: "Abre una página youtube.com/watch y reabre este panel.",

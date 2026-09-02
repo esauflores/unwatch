@@ -1,4 +1,4 @@
-import { bindSettingsForm, errMsg, renderMarkdown, settings, UI } from "./shared";
+import { bindSettingsForm, errMsg, renderMarkdown, settings } from "./shared";
 import { verdictLabel } from "./schema";
 import { listVideos } from "./videos";
 
@@ -89,7 +89,6 @@ const err = document.getElementById("err")!;
   providerSelect.value = provider;
   keyInput.value = llmKey;
   void refreshModelHints();
-  const t = UI[lang];
   try {
     const videos = await listVideos();
     if (!videos.length) {
@@ -104,9 +103,7 @@ const err = document.getElementById("err")!;
       const tag = el.querySelector(".verdict") as HTMLElement;
       tag.textContent = verdictLabel(v.verdict, lang);
       if (v.verdict) tag.dataset.v = v.verdict;
-      const raw = [v.filter_md, v.conclusiones_md && `\n\n## ${t.notes}\n${v.conclusiones_md}`]
-        .filter(Boolean)
-        .join("");
+      const raw = v.filter_md ?? "";
       renderMarkdown(el.querySelector(".md")!, raw);
       const copy = document.createElement("button");
       copy.textContent = "Copy";

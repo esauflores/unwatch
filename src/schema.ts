@@ -11,7 +11,6 @@ export type Video = {
   claims_md: string;
   transcript_json: Cue[];
   chat_json: ChatTurn[];
-  conclusiones_md: string;
 };
 
 export type ListItem = Omit<Video, "transcript_json" | "chat_json">;

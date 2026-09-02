@@ -1,5 +1,5 @@
 import { beforeEach, expect, it } from "vitest";
-import { chatVideo, conclusionesVideo, filterVideo, getVideo, listVideos } from "./videos";
+import { chatVideo, filterVideo, getVideo, listVideos } from "./videos";
 
 // Minimal chrome.storage.local stub — an in-memory object behind get/set.
 // Seeded with the demo provider so the flow runs offline.
@@ -22,7 +22,7 @@ beforeEach(() => {
   };
 });
 
-it("demo flow: filter → chat → conclusiones round-trips through the store", async () => {
+it("demo flow: filter → chat round-trips through the store", async () => {
   const v = await filterVideo({ videoId: "abc", title: "First talk", cues: [{ t: 12, text: "hello world" }] });
   expect(v.verdict).toBe("nuevo");
   expect(v.filter_md).toContain("Demo claim");
@@ -34,10 +34,6 @@ it("demo flow: filter → chat → conclusiones round-trips through the store", 
   const { answer } = await chatVideo("abc", "what is this about?");
   expect(answer).toContain("Demo answer");
   expect((await getVideo("abc"))?.chat_json).toHaveLength(2);
-
-  const { conclusiones_md } = await conclusionesVideo("abc");
-  expect(conclusiones_md).toContain("Demo takeaway");
-  expect((await getVideo("abc"))?.conclusiones_md).toContain("Demo takeaway");
 });
 
 it("second video comes back mixto against the first's saved claims", async () => {
@@ -55,12 +51,11 @@ it("listVideos is newest-first and omits transcript/chat", async () => {
   expect((list[0] as Record<string, unknown>).transcript_json).toBeUndefined();
 });
 
-it("chat/conclusiones on an unknown video throw", async () => {
+it("chat on an unknown video throws", async () => {
   await expect(chatVideo("nope", "hi")).rejects.toThrow(/filter this video first/);
-  await expect(conclusionesVideo("nope")).rejects.toThrow(/filter this video first/);
 });
 
-it("re-filtering a video keeps created_at, chat, and conclusiones", async () => {
+it("re-filtering a video keeps created_at and chat", async () => {
   const first = await filterVideo({ videoId: "x", title: "X", cues: [{ t: 1, text: "a" }] });
   await chatVideo("x", "q");
   const again = await filterVideo({ videoId: "x", title: "X v2", cues: [{ t: 2, text: "b" }] });

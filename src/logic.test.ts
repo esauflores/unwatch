@@ -40,7 +40,6 @@ it("demoComplete branches on message content (English default)", () => {
   expect(u("Transcript:\n...")).toMatch(/^new/);
   expect(u("Past claims:\n...")).toMatch(/^mixed/);
   expect(u("Question: what?")).toContain("Demo answer");
-  expect(u("Write the notes.")).toContain("Demo takeaway");
 });
 
 it("demoComplete answers in Spanish when the system prompt asks", () => {

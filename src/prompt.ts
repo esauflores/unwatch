@@ -70,22 +70,3 @@ export function chatMessages(
     { role: "user", content: `Question: ${question}` },
   ];
 }
-
-export function conclusionesMessages(
-  title: string,
-  filterMd: string,
-  history: ChatTurn[],
-  lang: Lang,
-): ChatMessage[] {
-  const chat = history.map((h) => `${h.role}: ${h.content}`).join("\n\n");
-  return [
-    {
-      role: "system",
-      content: `Write article-ready notes in markdown bullets: claim + why + optional timestamp. Use the user's questions as the angle. Do not rehash the filter card. ${respondIn(lang)}`,
-    },
-    {
-      role: "user",
-      content: `Title: ${title}\n\nFilter:\n${filterMd}\n\nChat:\n${chat || "(no chat)"}\n\nWrite the notes.`,
-    },
-  ];
-}
