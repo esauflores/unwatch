@@ -25,7 +25,7 @@ async function llmOpts() {
   const s = await settings();
   const provider = (s.provider || "demo") as Provider;
   const model = s.model || (provider !== "demo" ? defaults[provider] : "demo");
-  return { provider, apiKey: s.llmKey, model, demo: provider === "demo" };
+  return { provider, apiKey: s.llmKey, model, demo: provider === "demo", lang: s.lang };
 }
 
 export async function getVideo(id: string): Promise<Video | undefined> {
@@ -44,7 +44,8 @@ export async function filterVideo(input: { videoId: string; title: string; cues:
     .slice(-50)
     .map((v) => ({ title: v.title, claims_md: v.claims_md }));
 
-  const filter_md = await complete({ ...(await llmOpts()), messages: filterMessages(input.title, input.cues, past) });
+  const { lang, ...llm } = await llmOpts();
+  const filter_md = await complete({ ...llm, messages: filterMessages(input.title, input.cues, past, lang) });
 
   const video: Video = {
     id: input.videoId,
@@ -65,9 +66,10 @@ export async function chatVideo(id: string, message: string): Promise<{ answer: 
   const videos = await load();
   const video = videos.find((v) => v.id === id);
   if (!video) throw new Error("filter this video first");
+  const { lang, ...llm } = await llmOpts();
   const answer = await complete({
-    ...(await llmOpts()),
-    messages: chatMessages(video.title, video.transcript_json, video.chat_json, message),
+    ...llm,
+    messages: chatMessages(video.title, video.transcript_json, video.chat_json, message, lang),
   });
   video.chat_json.push({ role: "user", content: message }, { role: "assistant", content: answer });
   await save(videos);
@@ -78,9 +80,10 @@ export async function conclusionesVideo(id: string): Promise<{ conclusiones_md: 
   const videos = await load();
   const video = videos.find((v) => v.id === id);
   if (!video) throw new Error("filter this video first");
+  const { lang, ...llm } = await llmOpts();
   const conclusiones_md = await complete({
-    ...(await llmOpts()),
-    messages: conclusionesMessages(video.title, video.filter_md, video.chat_json),
+    ...llm,
+    messages: conclusionesMessages(video.title, video.filter_md, video.chat_json, lang),
   });
   video.conclusiones_md = conclusiones_md;
   await save(videos);

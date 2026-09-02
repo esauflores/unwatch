@@ -1,4 +1,4 @@
-import { errMsg, renderMarkdown } from "./shared";
+import { errMsg, renderMarkdown, settings, UI } from "./shared";
 import { chatVideo, conclusionesVideo, filterVideo, getVideo } from "./videos";
 import type { Video } from "./schema";
 
@@ -9,8 +9,10 @@ const out = document.getElementById("out")!;
 const chatEl = document.getElementById("chat")!;
 const q = document.getElementById("q") as HTMLTextAreaElement;
 const metaEl = document.getElementById("meta")!;
+const btn = (id: string) => document.getElementById(id) as HTMLButtonElement;
 
 let videoId = "";
+let t = UI.en;
 
 function showErr(e: string): void {
   err.textContent = e || "";
@@ -47,7 +49,7 @@ function showVideo(v: Video): void {
   for (const turn of v.chat_json ?? []) {
     parts.push(`${turn.role === "user" ? "Q" : "A"}: ${turn.content}`);
   }
-  if (v.conclusiones_md) parts.push(`Conclusiones\n${v.conclusiones_md}`);
+  if (v.conclusiones_md) parts.push(`## ${t.notes}\n${v.conclusiones_md}`);
   const raw = parts.join("\n\n");
   chatEl.dataset.raw = raw;
   renderMd(chatEl, raw);
@@ -96,7 +98,7 @@ document.getElementById("conc")!.onclick = async () => {
     await ensureVideo();
     const { conclusiones_md } = await conclusionesVideo(videoId);
     await navigator.clipboard.writeText(conclusiones_md);
-    appendChat(`Conclusiones (copied)\n${conclusiones_md}`);
+    appendChat(`## ${t.notes} (${t.copied})\n${conclusiones_md}`);
   } catch (e) {
     showErr(errMsg(e));
   }
@@ -107,6 +109,12 @@ document.getElementById("lib")!.onclick = () => {
 };
 
 (async () => {
+  t = UI[(await settings()).lang];
+  btn("run").textContent = t.filter;
+  btn("ask").textContent = t.ask;
+  btn("conc").textContent = t.notes;
+  btn("lib").textContent = t.library;
+  q.placeholder = t.askPlaceholder;
   try {
     const p = await send({ type: "unwatch:meta" });
     setMeta(p);
@@ -115,6 +123,6 @@ document.getElementById("lib")!.onclick = () => {
     else videoId = "";
   } catch {
     videoId = "";
-    metaEl.textContent = "Open a youtube.com/watch page, then reopen this panel.";
+    metaEl.textContent = t.noVideo;
   }
 })();

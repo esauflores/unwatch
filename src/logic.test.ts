@@ -17,10 +17,13 @@ function fakeEl(tag: string): FakeNode {
   createTextNode: (text: string) => ({ tag: "#text", text, children: [] }),
 };
 
-it("parseVerdict reads the first line", () => {
+it("parseVerdict reads the first line, either language", () => {
   expect(parseVerdict("nuevo\n\n- x")).toBe("nuevo");
   expect(parseVerdict("ya_visto\n- x")).toBe("ya_visto");
   expect(parseVerdict("mixto — 1 new")).toBe("mixto");
+  expect(parseVerdict("new\n\n- x")).toBe("nuevo");
+  expect(parseVerdict("seen")).toBe("ya_visto");
+  expect(parseVerdict("mixed")).toBe("mixto");
   expect(parseVerdict("hello")).toBe(null);
 });
 
@@ -32,12 +35,21 @@ it("formatTranscript stamps MM:SS", () => {
   expect(formatTranscript([{ t: 12, text: "hi" }, { t: 100, text: "bye" }])).toBe("[0:12] hi\n[1:40] bye");
 });
 
-it("demoComplete branches on message content", () => {
+it("demoComplete branches on message content (English default)", () => {
   const u = (content: string) => demoComplete([{ role: "user", content }]);
-  expect(u("Transcript:\n...")).toMatch(/^nuevo/);
-  expect(u("Past claims:\n...")).toMatch(/^mixto/);
+  expect(u("Transcript:\n...")).toMatch(/^new/);
+  expect(u("Past claims:\n...")).toMatch(/^mixed/);
   expect(u("Question: what?")).toContain("Demo answer");
-  expect(u("Write conclusiones.")).toContain("Demo takeaway");
+  expect(u("Write the notes.")).toContain("Demo takeaway");
+});
+
+it("demoComplete answers in Spanish when the system prompt asks", () => {
+  const out = demoComplete([
+    { role: "system", content: "… Responde en español." },
+    { role: "user", content: "Transcript:\n..." },
+  ]);
+  expect(out).toMatch(/^nuevo/);
+  expect(out).toContain("transcripción");
 });
 
 it("renderMarkdown: bullets, bold, and a seeking timestamp button", () => {
@@ -54,6 +66,6 @@ it("renderMarkdown: bullets, bold, and a seeking timestamp button", () => {
 });
 
 it("complete falls back to demo, and rejects a real provider with no key", async () => {
-  expect(await complete({ provider: "demo", apiKey: "", model: "demo", messages: [{ role: "user", content: "Transcript:" }] })).toMatch(/^nuevo/);
+  expect(await complete({ provider: "demo", apiKey: "", model: "demo", messages: [{ role: "user", content: "Transcript:" }] })).toMatch(/^new/);
   await expect(complete({ provider: "openai", apiKey: "", model: "gpt", messages: [] })).rejects.toThrow(/missing llm key/);
 });

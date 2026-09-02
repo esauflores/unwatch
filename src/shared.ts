@@ -1,13 +1,46 @@
+export type Lang = "en" | "es";
+
 export type Settings = {
   provider: string;
   model: string;
   llmKey: string;
+  lang: Lang;
 };
 
 const DEFAULTS: Settings = {
   provider: "demo",
   model: "",
   llmKey: "",
+  lang: "en",
+};
+
+export const UI: Record<Lang, {
+  filter: string;
+  ask: string;
+  notes: string;
+  library: string;
+  askPlaceholder: string;
+  noVideo: string;
+  copied: string;
+}> = {
+  en: {
+    filter: "Filter this video",
+    ask: "Ask",
+    notes: "Notes",
+    library: "Library & settings",
+    askPlaceholder: "Ask this transcript…",
+    noVideo: "Open a youtube.com/watch page, then reopen this panel.",
+    copied: "copied",
+  },
+  es: {
+    filter: "Filtrar este video",
+    ask: "Preguntar",
+    notes: "Conclusiones",
+    library: "Biblioteca y ajustes",
+    askPlaceholder: "Pregunta a esta transcripción…",
+    noVideo: "Abre una página youtube.com/watch y reabre este panel.",
+    copied: "copiado",
+  },
 };
 
 export function errMsg(e: unknown): string {
@@ -90,6 +123,7 @@ export function bindSettingsForm(form: HTMLFormElement): void {
       provider: String(fd.get("provider") || "demo"),
       model: String(fd.get("model") || ""),
       llmKey: String(fd.get("llmKey") || ""),
+      lang: fd.get("lang") === "es" ? "es" : "en",
     });
     form.querySelector("[data-saved]")?.replaceChildren(document.createTextNode("saved"));
   });

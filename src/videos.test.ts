@@ -43,7 +43,7 @@ it("second video comes back mixto against the first's saved claims", async () =>
   await filterVideo({ videoId: "one", title: "One", cues: [{ t: 1, text: "a" }] });
   const two = await filterVideo({ videoId: "two", title: "Two", cues: [{ t: 1, text: "b" }] });
   expect(two.verdict).toBe("mixto");
-  expect(two.filter_md).toContain("solapado");
+  expect(two.filter_md).toContain("overlap");
 });
 
 it("listVideos is newest-first and omits transcript/chat", async () => {

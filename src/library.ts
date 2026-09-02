@@ -1,4 +1,5 @@
-import { bindSettingsForm, errMsg, renderMarkdown } from "./shared";
+import { bindSettingsForm, errMsg, renderMarkdown, settings, UI } from "./shared";
+import { verdictLabel } from "./schema";
 import { listVideos } from "./videos";
 
 bindSettingsForm(document.getElementById("settings") as HTMLFormElement);
@@ -7,6 +8,8 @@ const list = document.getElementById("list")!;
 const err = document.getElementById("err")!;
 
 (async () => {
+  const { lang } = await settings();
+  const t = UI[lang];
   try {
     const videos = await listVideos();
     if (!videos.length) {
@@ -16,10 +19,12 @@ const err = document.getElementById("err")!;
     for (const v of videos) {
       const el = document.createElement("div");
       el.className = "item";
-      el.innerHTML = `<strong></strong> · <span class="verdict"></span><div class="md"></div>`;
+      el.innerHTML = `<div class="item-head"><strong></strong><span class="verdict"></span></div><div class="md"></div>`;
       el.querySelector("strong")!.textContent = v.title;
-      el.querySelector(".verdict")!.textContent = v.verdict ?? "—";
-      const raw = [v.filter_md, v.conclusiones_md && `\n\n## Conclusiones\n${v.conclusiones_md}`]
+      const tag = el.querySelector(".verdict") as HTMLElement;
+      tag.textContent = verdictLabel(v.verdict, lang);
+      if (v.verdict) tag.dataset.v = v.verdict;
+      const raw = [v.filter_md, v.conclusiones_md && `\n\n## ${t.notes}\n${v.conclusiones_md}`]
         .filter(Boolean)
         .join("");
       renderMarkdown(el.querySelector(".md")!, raw);

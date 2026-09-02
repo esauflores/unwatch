@@ -6,25 +6,21 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h1>unwatch</h1>
+    <header>
+      <h1>unwatch</h1>
+      <button id="lib" class="ghost">Library &amp; settings</button>
+    </header>
     <p id="meta"></p>
-    <p class="hint">
-      Skip/keep verdict + claim bullets from a video's captions. Demo model until
-      you set a key in Library &amp; settings.
-    </p>
-    <div class="row">
-      <button id="run" class="primary">Filter this video</button>
-      <button id="lib">Library &amp; settings</button>
-    </div>
+    <button id="run" class="primary block">Filter this video</button>
     <p id="err" class="err"></p>
-    <div id="out" class="md"></div>
+    <section id="out" class="md"></section>
     <h2>Ask</h2>
     <textarea id="q" placeholder="Ask this transcript…"></textarea>
     <div class="row">
       <button id="ask">Ask</button>
-      <button id="conc">Conclusiones</button>
+      <button id="conc">Notes</button>
     </div>
-    <div id="chat" class="md"></div>
+    <section id="chat" class="md"></section>
     <script src="sidepanel.js"></script>
   </body>
 </html>

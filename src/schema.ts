@@ -18,10 +18,19 @@ export type ListItem = Omit<Video, "transcript_json" | "chat_json">;
 
 export function parseVerdict(md: string): Verdict | null {
   const first = md.trim().split("\n")[0]?.toLowerCase() ?? "";
-  if (first.includes("ya_visto") || first.includes("ya visto")) return "ya_visto";
-  if (first.includes("mixto")) return "mixto";
-  if (first.includes("nuevo")) return "nuevo";
+  if (/ya_visto|ya visto|seen/.test(first)) return "ya_visto";
+  if (/mixto|mixed/.test(first)) return "mixto";
+  if (/nuevo|new/.test(first)) return "nuevo";
   return null;
+}
+
+const VERDICT_LABELS = {
+  en: { nuevo: "new", ya_visto: "seen", mixto: "mixed" },
+  es: { nuevo: "nuevo", ya_visto: "ya visto", mixto: "mixto" },
+} as const;
+
+export function verdictLabel(v: Verdict | null, lang: "en" | "es"): string {
+  return v ? VERDICT_LABELS[lang][v] : "—";
 }
 
 export function extractClaimsMd(md: string): string {

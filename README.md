@@ -33,6 +33,9 @@ Library → **Provider** (`gemini` / `anthropic` / `openai`) + **LLM key** +
 optional **Model**, Save. Then Filter again. Defaults: Gemini
 `gemini-2.5-flash`, Anthropic `claude-haiku-4-5`, OpenAI `gpt-4.1-mini`.
 
+**Language** (Library → `English` / `Español`, default English) switches both the
+panel labels and the language the model answers in. One mode at a time, no mixing.
+
 The key is stored **unencrypted in this browser** (`chrome.storage.local`, same
 as a `.env` file) and is sent only to the provider you pick. Use a key with a
 spend cap.
@@ -42,10 +45,12 @@ spend cap.
 - One click on `youtube.com/watch`: timed captions from the page → one BYOK call
   → markdown (verdict + claim bullets). No captions → one-line error, stop.
 - Verdict is **vs your own saved bullets**, not "AI videos in general":
-  `nuevo` | `ya_visto` | `mixto`. First video: no past list.
+  `new`/`nuevo` | `seen`/`ya_visto` | `mixed`/`mixto` (per language). First video:
+  no past list.
 - Chat in the panel on **this** transcript (stuffed, no RAG). Answers cite
   `t=MM:SS`; the timestamp seeks the player.
-- **Conclusiones**: one call from the filter card + chat → clipboard + saved row.
+- **Notes** / **Conclusiones**: one call from the filter card + chat → clipboard
+  + saved row.
 - **Library**: saved videos (markdown body, copy) + settings.
 
 One stored row per video is both the library and the novelty pile:

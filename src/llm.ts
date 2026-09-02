@@ -12,23 +12,26 @@ export const defaults: Record<Exclude<Provider, "demo">, string> = {
 };
 
 export function demoComplete(messages: ChatMessage[]): string {
+  const es = messages.some((m) => /Responde en español/.test(m.content));
   const user = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
-  if (user.toLowerCase().includes("conclusiones")) {
-    return "- Demo takeaway from the chat.\n- Worth a note if you ask a real model.";
+  if (user.includes("Write the notes.")) {
+    return es
+      ? "- Idea demo a partir del chat.\n- Anótalo si preguntas a un modelo real."
+      : "- Demo takeaway from the chat.\n- Worth a note if you ask a real model.";
   }
   if (user.includes("Question:")) {
-    return "Demo answer (t=00:12). Pick a provider and add a key for a real one.";
+    return es
+      ? "Respuesta demo (t=00:12). Elige un proveedor y añade una clave para una real."
+      : "Demo answer (t=00:12). Pick a provider and add a key for a real one.";
   }
   if (user.includes("Past claims:")) {
-    return `mixto
-
-- **solapado** — Demo overlap with a past video
-- **nuevo** — Demo new hook (t=00:12)`;
+    return es
+      ? "mixto\n\n- **solapado** — solape demo con un video anterior\n- **nuevo** — gancho demo (t=00:12)"
+      : "mixed\n\n- **overlap** — Demo overlap with a past video\n- **new** — Demo new hook (t=00:12)";
   }
-  return `nuevo
-
-- Demo claim from the transcript (t=00:12)
-- Second claim so the library has bullets (t=01:40)`;
+  return es
+    ? "nuevo\n\n- Afirmación demo de la transcripción (t=00:12)\n- Segunda afirmación para tener bullets (t=01:40)"
+    : "new\n\n- Demo claim from the transcript (t=00:12)\n- Second claim so the library has bullets (t=01:40)";
 }
 
 export async function complete(opts: {
