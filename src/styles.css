@@ -133,6 +133,7 @@ form#settings {
   border-radius: var(--radius);
   padding: 4px 16px 16px;
 }
+form#settings textarea { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; line-height: 1.5; }
 .ok { color: var(--good); font-size: 12px; }
 
 .item {

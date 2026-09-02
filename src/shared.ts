@@ -1,10 +1,46 @@
 export type Lang = "en" | "es";
 
+// Editable system prompts, one default per language. {verdict}/{overlap} are
+// filled per language and {title} per video; respondIn(lang) + the transcript
+// blocks are appended by prompt.ts. Stored as "" = follow the built-in default.
+export const DEFAULT_FILTER_PROMPT: Record<Lang, string> = {
+  en:
+    "You write a skip/keep card for a YouTube video from its captions. Output markdown only. " +
+    "First line must be exactly one of: {verdict}. Then 8–12 claim bullets (specific tactics, numbers, " +
+    "names — not 'the host discusses AI'). If past claims are provided, tag each bullet {overlap} and name " +
+    "the overlapping video. End every bullet with a (t=MM:SS) timestamp taken from the transcript, marking " +
+    "where that point is made. If there are no past claims, skip overlap tags and use the first verdict " +
+    "value. Do not classify against the open internet. Only vs the past claims.",
+  es:
+    "Escribes una tarjeta de saltar/ver para un video de YouTube a partir de sus subtítulos. Devuelve solo " +
+    "markdown. La primera línea debe ser exactamente una de: {verdict}. Luego 8–12 viñetas de afirmaciones " +
+    "(tácticas concretas, números, nombres — no 'el anfitrión habla de IA'). Si se dan afirmaciones previas, " +
+    "etiqueta cada viñeta {overlap} y nombra el video que se solapa. Termina cada viñeta con una marca de " +
+    "tiempo (t=MM:SS) tomada de la transcripción, indicando dónde se dice ese punto. Si no hay afirmaciones " +
+    "previas, omite las etiquetas de solape y usa el primer valor del veredicto. No clasifiques contra " +
+    "internet abierto. Solo contra las afirmaciones previas.",
+};
+
+export const DEFAULT_CHAT_PROMPT: Record<Lang, string> = {
+  en:
+    'You are helping the user work with the YouTube video "{title}". You have its full transcript and the ' +
+    "skip/keep extract already generated from it. Answer from the transcript and cite t=MM:SS. If asked to " +
+    "revise or rewrite the extract, do it from the transcript. If something is not in the transcript, say " +
+    "so. Be short unless asked for more.",
+  es:
+    'Ayudas al usuario a trabajar con el video de YouTube "{title}". Tienes su transcripción completa y el ' +
+    "extracto de saltar/ver ya generado a partir de ella. Responde a partir de la transcripción y cita " +
+    "t=MM:SS. Si te piden revisar o reescribir el extracto, hazlo a partir de la transcripción. Si algo no " +
+    "está en la transcripción, dilo. Sé breve salvo que pidan más.",
+};
+
 export type Settings = {
   provider: string;
   model: string;
   llmKey: string;
   lang: Lang;
+  filterPrompt: string; // "" → DEFAULT_FILTER_PROMPT[lang]
+  chatPrompt: string; // "" → DEFAULT_CHAT_PROMPT[lang]
 };
 
 const DEFAULTS: Settings = {
@@ -12,7 +48,16 @@ const DEFAULTS: Settings = {
   model: "",
   llmKey: "",
   lang: "en",
+  filterPrompt: "",
+  chatPrompt: "",
 };
+
+export function resolvedPrompts(s: Settings): { filter: string; chat: string } {
+  return {
+    filter: s.filterPrompt || DEFAULT_FILTER_PROMPT[s.lang],
+    chat: s.chatPrompt || DEFAULT_CHAT_PROMPT[s.lang],
+  };
+}
 
 type Strings = {
   filter: string;
@@ -35,6 +80,9 @@ type Strings = {
   copy: string;
   del: string;
   transcript: string;
+  filterPromptLabel: string;
+  chatPromptLabel: string;
+  resetPrompts: string;
   deletePrompt: (title: string) => string;
 };
 
@@ -60,6 +108,9 @@ export const UI: Record<Lang, Strings> = {
     copy: "Copy",
     del: "Delete",
     transcript: "Transcript",
+    filterPromptLabel: "Extract prompt",
+    chatPromptLabel: "Chat prompt",
+    resetPrompts: "Reset prompts",
     deletePrompt: (title) => `Delete "${title}"?`,
   },
   es: {
@@ -83,6 +134,9 @@ export const UI: Record<Lang, Strings> = {
     copy: "Copiar",
     del: "Eliminar",
     transcript: "Transcripción",
+    filterPromptLabel: "Prompt de extracto",
+    chatPromptLabel: "Prompt de chat",
+    resetPrompts: "Restablecer prompts",
     deletePrompt: (title) => `¿Eliminar "${title}"?`,
   },
 };
@@ -153,23 +207,51 @@ export async function saveSettings(partial: Partial<Settings>): Promise<void> {
   await chrome.storage.local.set(partial);
 }
 
+const isDefaultPrompt = (val: string, defs: Record<Lang, string>) =>
+  !val.trim() || Object.values(defs).includes(val.trim());
+
+// A prompt textarea that still holds a built-in default (any language's) follows
+// the Language selector; one the user has edited is left alone.
+function syncPromptDefaults(form: HTMLFormElement, lang: Lang): void {
+  for (const [name, defs] of [
+    ["filterPrompt", DEFAULT_FILTER_PROMPT],
+    ["chatPrompt", DEFAULT_CHAT_PROMPT],
+  ] as const) {
+    const el = form.elements.namedItem(name);
+    if (el instanceof HTMLTextAreaElement && isDefaultPrompt(el.value, defs)) el.value = defs[lang];
+  }
+}
+
 export function bindSettingsForm(form: HTMLFormElement): void {
   settings().then((s) => {
     for (const [k, v] of Object.entries(s)) {
       const el = form.elements.namedItem(k);
-      if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) el.value = String(v);
+      if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
+        el.value = String(v);
+      }
     }
+    syncPromptDefaults(form, s.lang); // show the default prose for the current language
   });
+
+  const langSel = form.elements.namedItem("lang");
+  if (langSel instanceof HTMLSelectElement) {
+    langSel.addEventListener("change", () => syncPromptDefaults(form, langSel.value === "es" ? "es" : "en"));
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(form);
     const lang: Lang = fd.get("lang") === "es" ? "es" : "en";
     const langChanged = lang !== (await settings()).lang;
+    const fp = String(fd.get("filterPrompt") || "").trim();
+    const cp = String(fd.get("chatPrompt") || "").trim();
     await saveSettings({
       provider: String(fd.get("provider") || "anthropic"),
       model: String(fd.get("model") || ""),
       llmKey: String(fd.get("llmKey") || ""),
       lang,
+      filterPrompt: fp === DEFAULT_FILTER_PROMPT[lang] ? "" : fp, // "" tracks the default
+      chatPrompt: cp === DEFAULT_CHAT_PROMPT[lang] ? "" : cp,
     });
     form.querySelector("[data-saved]")?.replaceChildren(document.createTextNode(UI[lang].saved));
     if (langChanged) location.reload(); // re-render this page in the new language

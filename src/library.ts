@@ -1,4 +1,12 @@
-import { bindSettingsForm, errMsg, renderMarkdown, settings, UI } from "./shared";
+import {
+  bindSettingsForm,
+  DEFAULT_CHAT_PROMPT,
+  DEFAULT_FILTER_PROMPT,
+  errMsg,
+  renderMarkdown,
+  settings,
+  UI,
+} from "./shared";
 import { formatTranscript, verdictLabel } from "./schema";
 import { deleteVideo, getVideo, listVideos } from "./videos";
 
@@ -101,10 +109,18 @@ const setText = (id: string, s: string) => {
     ["l-provider", t.providerLabel],
     ["l-model", t.modelLabel],
     ["l-key", t.keyLabel],
+    ["l-fprompt", t.filterPromptLabel],
+    ["l-cprompt", t.chatPromptLabel],
     ["save-btn", t.save],
+    ["reset-prompts", t.resetPrompts],
   ] as const) {
     setText(id, s);
   }
+  document.getElementById("reset-prompts")!.addEventListener("click", () => {
+    const l = (form.elements.namedItem("lang") as HTMLSelectElement).value === "es" ? "es" : "en";
+    (form.elements.namedItem("filterPrompt") as HTMLTextAreaElement).value = DEFAULT_FILTER_PROMPT[l];
+    (form.elements.namedItem("chatPrompt") as HTMLTextAreaElement).value = DEFAULT_CHAT_PROMPT[l];
+  });
   providerSelect.value = provider;
   keyInput.value = llmKey;
   void refreshModelHints();

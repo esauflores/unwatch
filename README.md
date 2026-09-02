@@ -40,6 +40,12 @@ is set (falls back to a short built-in list); it's free text, so any id works.
 **Language** (Library → `English` / `Español`, default English) switches both the
 panel labels and the language the model answers in. One mode at a time, no mixing.
 
+**Prompts** — Library has an editable **Extract prompt** and **Chat prompt**, each
+with a per-language default and a **Reset prompts** button. `{verdict}` / `{overlap}`
+(extract) and `{title}` (chat) are filled in; `Respond in <lang>` and the transcript
+blocks are appended automatically. An untouched box follows the Language selector;
+once you edit it, it stays as written. Stored as `""` while it matches the default.
+
 The key is stored **unencrypted in this browser** (`chrome.storage.local`, same
 as a `.env` file) and is sent only to the provider you pick. Use a key with a
 spend cap.

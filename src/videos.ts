@@ -1,7 +1,7 @@
 import { complete, defaults, type Provider } from "./llm";
 import { chatMessages, filterMessages } from "./prompt";
 import { type Cue, extractClaimsMd, type ListItem, listItem, parseVerdict, type Video } from "./schema";
-import { settings } from "./shared";
+import { resolvedPrompts, settings } from "./shared";
 
 const KEY = "videos";
 
@@ -25,7 +25,16 @@ async function llmOpts() {
   const s = await settings();
   const provider = (s.provider || "anthropic") as Provider;
   const model = s.model || (provider !== "demo" ? defaults[provider] : "demo");
-  return { provider, apiKey: s.llmKey, model, demo: provider === "demo", lang: s.lang };
+  const prompts = resolvedPrompts(s);
+  return {
+    provider,
+    apiKey: s.llmKey,
+    model,
+    demo: provider === "demo",
+    lang: s.lang,
+    filterPrompt: prompts.filter,
+    chatPrompt: prompts.chat,
+  };
 }
 
 export async function getVideo(id: string): Promise<Video | undefined> {
@@ -48,8 +57,11 @@ export async function filterVideo(input: { videoId: string; title: string; cues:
     .slice(-50)
     .map((v) => ({ title: v.title, claims_md: v.claims_md }));
 
-  const { lang, ...llm } = await llmOpts();
-  const filter_md = await complete({ ...llm, messages: filterMessages(input.title, input.cues, past, lang) });
+  const { lang, filterPrompt, chatPrompt: _cp, ...llm } = await llmOpts();
+  const filter_md = await complete({
+    ...llm,
+    messages: filterMessages(input.title, input.cues, past, lang, filterPrompt),
+  });
 
   const video: Video = {
     id: input.videoId,
@@ -69,10 +81,18 @@ export async function chatVideo(id: string, message: string): Promise<{ answer: 
   const videos = await load();
   const video = videos.find((v) => v.id === id);
   if (!video) throw new Error("filter this video first");
-  const { lang, ...llm } = await llmOpts();
+  const { lang, chatPrompt, filterPrompt: _fp, ...llm } = await llmOpts();
   const answer = await complete({
     ...llm,
-    messages: chatMessages(video.title, video.filter_md, video.transcript_json, video.chat_json, message, lang),
+    messages: chatMessages(
+      video.title,
+      video.filter_md,
+      video.transcript_json,
+      video.chat_json,
+      message,
+      lang,
+      chatPrompt,
+    ),
   });
   video.chat_json.push({ role: "user", content: message }, { role: "assistant", content: answer });
   await save(videos);
