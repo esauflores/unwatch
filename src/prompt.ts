@@ -29,7 +29,7 @@ export function filterMessages(
         `First line must be exactly one of: ${verdictTokens(lang)}`,
         "Then 8–12 claim bullets (specific tactics, numbers, names — not 'the host discusses AI').",
         `If past claims are provided, tag each bullet ${overlapTags(lang)} and name the overlapping video.`,
-        "Timestamps only on new hooks, as (t=MM:SS).",
+        "End every bullet with a (t=MM:SS) timestamp taken from the transcript, marking where that point is made.",
         `If there are no past claims, skip overlap tags and use the first verdict value.`,
         "Do not classify against the open internet. Only vs the past claims.",
         respondIn(lang),
