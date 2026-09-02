@@ -13,3 +13,4 @@ logs/
 .vscode/*
 !.vscode/launch.json
 unwatch.zip
+store/
