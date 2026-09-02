@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "unwatch",
+  "version": "0.0.1",
+  "description": "Filter a YouTube video, ask it, save the bullets.",
+  "permissions": ["sidePanel", "storage", "unlimitedStorage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "icons": { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png" },
+  "action": {
+    "default_title": "unwatch",
+    "default_icon": { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png" }
+  },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

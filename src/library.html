@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>unwatch library</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <h1>unwatch library</h1>
+    <h2>Settings</h2>
+    <form id="settings">
+      <label>
+        Provider
+        <select name="provider">
+          <option value="demo">demo (no key)</option>
+          <option value="gemini">gemini</option>
+          <option value="anthropic">anthropic</option>
+          <option value="openai">openai</option>
+        </select>
+      </label>
+      <label>Model (optional) <input name="model" placeholder="default for provider" /></label>
+      <label>LLM key <input name="llmKey" type="password" autocomplete="off" /></label>
+      <div class="row">
+        <button class="primary" type="submit">Save</button>
+        <span data-saved class="ok"></span>
+      </div>
+    </form>
+    <h2>Saved</h2>
+    <p id="err" class="err"></p>
+    <div id="list"></div>
+    <script src="library.js"></script>
+  </body>
+</html>
