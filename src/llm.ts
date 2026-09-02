@@ -8,7 +8,7 @@ export type ChatMessage = { role: "system" | "user" | "assistant"; content: stri
 
 export const defaults: Record<Exclude<Provider, "demo">, string> = {
   anthropic: "claude-haiku-4-5",
-  openai: "gpt-4.1-mini",
+  openai: "gpt-5-mini",
   gemini: "gemini-2.5-flash",
 };
 

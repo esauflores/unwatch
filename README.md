@@ -32,7 +32,7 @@ After every `pnpm build`, hit the reload ↻ on the extension card.
 
 Library → **Provider** (`anthropic` / `openai` / `gemini`) + **LLM key** +
 optional **Model**, Save. Then Filter again. Defaults: Anthropic
-`claude-haiku-4-5`, OpenAI `gpt-4.1-mini`, Gemini `gemini-2.5-flash`.
+`claude-haiku-4-5`, OpenAI `gpt-5-mini`, Gemini `gemini-2.5-flash`.
 
 The **Model** box autocompletes from the provider's own `/v1/models` once a key
 is set (falls back to a short built-in list); it's free text, so any id works.

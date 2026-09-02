@@ -6,10 +6,12 @@ const form = document.getElementById("settings") as HTMLFormElement;
 bindSettingsForm(form);
 
 // Fallback only — used when there's no key yet or the /models call fails.
+// First id is each provider's blank-field default (keep in sync with llm.ts `defaults`).
+// Snapshot from models.dev, 2026-09; the live /v1/models call supersedes it.
 const MODEL_HINTS: Record<string, string[]> = {
-  anthropic: ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-sonnet-5", "claude-opus-4-8"],
-  openai: ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini", "gpt-4o"],
-  gemini: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],
+  anthropic: ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-sonnet-5", "claude-opus-4-8", "claude-opus-5"],
+  openai: ["gpt-5-mini", "gpt-5-nano", "gpt-5", "gpt-5.1", "gpt-4.1-mini", "gpt-4o-mini"],
+  gemini: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro", "gemini-flash-latest", "gemini-3.5-flash"],
 };
 
 // Live list straight from the provider — the only source that's actually current
