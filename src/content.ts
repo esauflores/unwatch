@@ -124,12 +124,10 @@ function parseXml(xml: string): Cue[] {
   return cues;
 }
 
-async function captions(): Promise<Cue[]> {
+async function timedtextCaptions(): Promise<Cue[]> {
   const pr = await playerResponse();
   const tracks = pr?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-  if (!Array.isArray(tracks) || tracks.length === 0) {
-    throw new Error("no transcript on this video");
-  }
+  if (!Array.isArray(tracks) || tracks.length === 0) return [];
   const track =
     tracks.find((t) => String(t.languageCode ?? "").startsWith("es")) ||
     tracks.find((t) => !t.kind || t.kind !== "asr") ||
@@ -137,27 +135,74 @@ async function captions(): Promise<Cue[]> {
 
   const json3 = new URL(track.baseUrl, location.origin);
   json3.searchParams.set("fmt", "json3");
-  const body = await fetchCaptionBody(json3);
   let cues: Cue[] = [];
-  if (body) {
-    try {
-      cues = parseJson3(JSON.parse(body));
-    } catch {
-      /* not JSON — fall through to XML */
-    }
+  try {
+    const body = await fetchCaptionBody(json3);
+    if (body) cues = parseJson3(JSON.parse(body));
+  } catch {
+    /* empty, blocked, or not JSON — try XML next */
   }
-
   if (!cues.length) {
     const xml = new URL(track.baseUrl, location.origin);
     xml.searchParams.delete("fmt");
-    const xmlBody = await fetchCaptionBody(xml);
-    if (xmlBody) cues = parseXml(xmlBody);
-  }
-
-  if (!cues.length) {
-    throw new Error("captions came back empty — an ad blocker or YouTube is blocking the timedtext request");
+    try {
+      const xmlBody = await fetchCaptionBody(xml);
+      if (xmlBody) cues = parseXml(xmlBody);
+    } catch {
+      /* fall through to the DOM panel */
+    }
   }
   return cues;
+}
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+function tsToSeconds(s: string): number {
+  const p = s.trim().split(":").map(Number);
+  return p.some((n) => Number.isNaN(n)) ? 0 : p.reduce((a, n) => a * 60 + n, 0);
+}
+
+function clickByText(re: RegExp): boolean {
+  for (const n of Array.from(document.querySelectorAll<HTMLElement>("button, tp-yt-paper-button, a"))) {
+    if (re.test((n.getAttribute("aria-label") || n.textContent || "").trim())) {
+      n.click();
+      return true;
+    }
+  }
+  return false;
+}
+
+// PoToken-gated videos return an empty timedtext body, but YouTube's own
+// "Show transcript" panel still renders (its player already minted the token),
+// so read the segments straight off the DOM.
+async function scrapeTranscriptPanel(): Promise<Cue[]> {
+  const SEG = "ytd-transcript-segment-renderer";
+  if (!document.querySelector(SEG)) {
+    document.querySelector<HTMLElement>("ytd-text-inline-expander #expand, tp-yt-paper-button#expand")?.click();
+    await sleep(300);
+    if (!clickByText(/^show transcript$/i) && !clickByText(/transcript/i)) {
+      throw new Error("no transcript available for this video");
+    }
+    for (let i = 0; i < 30 && !document.querySelector(SEG); i++) await sleep(200);
+  }
+
+  const cues: Cue[] = [];
+  for (const el of Array.from(document.querySelectorAll(SEG))) {
+    const text = (el.querySelector(".segment-text")?.textContent ?? "").replace(/\s+/g, " ").trim();
+    if (text) cues.push({ t: tsToSeconds(el.querySelector(".segment-timestamp")?.textContent ?? ""), text });
+  }
+  clickByText(/^hide transcript$/i); // leave the page as we found it
+
+  if (!cues.length) throw new Error("transcript panel rendered no segments");
+  console.warn(`[unwatch] scraped ${cues.length} transcript segments from the panel`);
+  return cues;
+}
+
+async function captions(): Promise<Cue[]> {
+  const cues = await timedtextCaptions();
+  if (cues.length) return cues;
+  console.warn("[unwatch] timedtext empty — reading YouTube's transcript panel instead");
+  return scrapeTranscriptPanel();
 }
 
 function meta(): { videoId: string; title: string; duration: number } {
