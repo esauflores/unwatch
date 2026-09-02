@@ -5,18 +5,24 @@
     <title>unwatch</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="panel">
     <header>
       <h1>unwatch</h1>
-      <div class="hdr-btns">
-        <button id="chat-open" class="ghost" hidden>Chat</button>
-        <button id="lib" class="ghost">Library &amp; settings</button>
-      </div>
+      <button id="lib" class="ghost">Library &amp; settings</button>
     </header>
+    <div class="tabs">
+      <button id="tab-extract" class="tab active" data-view="extract">Extract</button>
+      <button id="tab-chat" class="tab" data-view="chat" disabled>Chat</button>
+    </div>
     <p id="meta"></p>
-    <button id="run" class="primary block">Extract from this video</button>
     <p id="err" class="err"></p>
-    <section id="out" class="md"></section>
+    <section id="view-extract">
+      <button id="run" class="primary block">Extract from this video</button>
+      <section id="out" class="md"></section>
+    </section>
+    <section id="view-chat" hidden>
+      <deep-chat id="dc"></deep-chat>
+    </section>
     <script src="sidepanel.js"></script>
   </body>
 </html>

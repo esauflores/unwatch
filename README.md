@@ -4,8 +4,8 @@ Skip a YouTube video from its captions. Filter → ask → save bullets.
 
 Oliver runs 10–15 videos/podcasts a day and doesn't watch them. In Claude that
 loop is ~10 min each: summary → skip if it's more of the same → ask what he
-actually cares about. unwatch puts that on the watch page as a side panel plus a
-chat page.
+actually cares about. unwatch puts that on the watch page as a side panel with
+**Extract** and **Chat** tabs.
 
 A Chrome MV3 extension, TypeScript, bundled with esbuild. **No server:** the LLM
 call is BYOK straight from the extension (via the Vercel AI SDK), and every video
@@ -24,7 +24,7 @@ pnpm build          # → dist/   (pnpm watch to rebuild on save)
 3. Open a YouTube watch page that has captions
 4. Click the unwatch icon (side panel)
 5. **Library & settings** → pick a provider + paste an LLM key, Save
-6. **Extract from this video** — verdict + claim bullets. **Chat** (header) opens the chat page in a new tab
+6. **Extract from this video** — verdict + claim bullets. The **Chat** tab (same panel) unlocks after
 
 After every `pnpm build`, hit the reload ↻ on the extension card.
 
@@ -57,10 +57,9 @@ spend cap.
 - Verdict is **vs your own saved bullets**, not "AI videos in general":
   `new`/`nuevo` | `seen`/`ya_visto` | `mixed`/`mixto` (per language). First video:
   no past list.
-- Chat on a separate page (`chat.html?v=…`, deep-chat UI) against **this**
-  transcript + the extract (stuffed, no RAG). Answers cite `t=MM:SS`; the
-  timestamp seeks the YouTube tab. Chat has the extract too, so "revise the
-  bullets" works.
+- **Chat** tab (side panel, deep-chat UI) against **this** transcript + the
+  extract (stuffed, no RAG). Answers cite `t=MM:SS`; Chat has the extract too, so
+  "revise the bullets" works. Unlocks once the video is extracted.
 - **Library**: saved videos — collapsed extract, copy, download transcript
   (`.txt`, `[M:SS]` lines), delete — plus settings.
 
@@ -83,12 +82,11 @@ D1 backend (for a shared library across devices) is the plausible next step —
    transcript, then `videos.ts#filterVideo`: `prompt.ts` builds the prompt from
    the transcript + the claim bullets of your last ~50 saved videos → one
    `generateText` call in `llm.ts` (Vercel AI SDK, your key) → first line parsed
-   into a verdict → row saved to `chrome.storage.local` → card rendered. A **Chat**
-   button appears in the header.
-3. **Chat** → opens `chat.html?v=<id>` in a tab. `chat.ts` loads the row, seeds a
-   deep-chat widget with the stored history; each message runs
-   `videos.ts#chatVideo` with a system prompt of **full transcript + current
-   extract** — so answers cite `t=MM:SS` (click → seeks the YouTube tab) and
+   into a verdict → row saved to `chrome.storage.local` → card rendered. The
+   **Chat** tab unlocks.
+3. **Chat** tab → `sidepanel.ts` wires a deep-chat widget seeded with the stored
+   history; each message runs `videos.ts#chatVideo` with a system prompt of
+   **full transcript + current extract** — so answers cite `t=MM:SS` and
    "rewrite the bullets" works. Turns are appended to the row.
 4. **`library.ts`** lists the rows (collapsed extract, copy, download transcript,
    delete) and owns the provider / model / key / language form.
@@ -101,8 +99,7 @@ src/
   background.ts   service worker: opens the side panel on the action click
   content.ts      videoId/title/duration + transcript (youtube-transcript lib,
                   DOM transcript-panel scrape as fallback)
-  sidepanel.ts    extract + result card                (+ sidepanel.html)
-  chat.ts         chat on one video                    (+ chat.html, deep-chat UI)
+  sidepanel.ts    Extract + Chat tabs (deep-chat UI)    (+ sidepanel.html)
   library.ts      saved list + settings                (+ library.html)
   shared.ts       settings in chrome.storage.local
   videos.ts       store + orchestration (filter/chat/list/get)

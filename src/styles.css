@@ -33,6 +33,20 @@ header {
   margin-bottom: 10px;
 }
 .hdr-btns { display: flex; gap: 6px; flex: none; }
+
+body.panel { max-width: none; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin: 2px 0 8px; }
+.tab {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 6px 10px;
+  color: var(--muted);
+}
+.tab:hover { background: none; color: var(--fg); }
+.tab.active { color: var(--fg); border-bottom-color: var(--accent); }
+.tab:disabled { opacity: 0.4; cursor: default; }
 details { margin: 8px 0; }
 summary { cursor: pointer; color: var(--muted); font-size: 12px; }
 
