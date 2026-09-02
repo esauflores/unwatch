@@ -47,7 +47,13 @@ btn("lib").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("libr
   metaEl.textContent = `${v.title}${v.verdict ? ` · ${v.verdict}` : ""}`;
   renderMarkdown(out, v.filter_md ?? "", seek);
 
-  dc.style.cssText = `flex:1 1 auto;min-height:320px;width:100%;border:1px solid ${C.line};border-radius:10px;background-color:${C.panel}`;
+  dc.style.cssText = `width:100%;border:1px solid ${C.line};border-radius:10px;background-color:${C.panel}`;
+  const fit = () => {
+    dc.style.height = `${Math.max(320, window.innerHeight - dc.getBoundingClientRect().top - 16)}px`;
+  };
+  fit();
+  window.addEventListener("resize", fit);
+  document.getElementById("context")!.addEventListener("toggle", fit);
   dc.textInput = {
     placeholder: { text: t.askPlaceholder, style: { color: C.muted } },
     styles: { text: { color: C.fg }, container: { backgroundColor: C.panel2, border: `1px solid ${C.line}` } },

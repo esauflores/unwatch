@@ -36,9 +36,8 @@ header {
 details { margin: 8px 0; }
 summary { cursor: pointer; color: var(--muted); font-size: 12px; }
 
-/* chat page: fill the window, deep-chat takes the remaining height */
-body.chat { max-width: 1100px; height: 100vh; display: flex; flex-direction: column; }
-body.chat > :not(#dc) { flex: none; }
+/* chat page: wide, deep-chat is sized to the viewport in chat.ts */
+body.chat { max-width: 1100px; }
 body.chat #context .md { max-height: 28vh; overflow: auto; }
 
 h1 {
