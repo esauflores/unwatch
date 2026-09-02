@@ -145,6 +145,11 @@ async function refreshModelHints(): Promise<void> {
   const found = await fetchModelIds(provider, key, base);
   if (seq !== lookup) return; // a newer lookup already answered
   applyModels(found.ids.length ? found.ids : (MODEL_HINTS[provider] ?? []), found.ids.length > 0, found);
+  // A custom endpoint has no default, so leaving the box empty only fails later,
+  // at Extract — seed it with the first id the server listed. Never overwrite one
+  // that's already filled, and never for the hosted three, where empty is the
+  // documented way to say "use the provider default".
+  if (provider === "custom" && !modelInput.value && found.ids.length) modelInput.value = found.ids[0];
 }
 
 // Typing a key or a URL should look them up without waiting for a blur — but not
@@ -160,6 +165,9 @@ const lookupSoon = debounce(() => void refreshModelHints(), 800);
 
 providerSelect.addEventListener("change", () => {
   syncCustomRow();
+  // A model id belongs to one provider — carrying "claude-sonnet-5" over to openai
+  // only fails at Extract. Clearing it also lets the lookup below seed a live id.
+  modelInput.value = "";
   void refreshModelHints();
 });
 keyInput.addEventListener("input", lookupSoon);
@@ -175,7 +183,7 @@ const setText = (id: string, s: string) => {
 };
 
 (async () => {
-  const { lang, provider, llmKey, baseUrl } = await settings();
+  const { lang, provider, model, llmKey, baseUrl } = await settings();
   t = UI[lang];
   for (const [id, s] of [
     ["h-settings", t.settingsHeading],
@@ -200,6 +208,7 @@ const setText = (id: string, s: string) => {
     (form.elements.namedItem("chatPrompt") as HTMLTextAreaElement).value = DEFAULT_CHAT_PROMPT[l];
   });
   providerSelect.value = provider;
+  modelInput.value = model; // before the lookup runs, so it can tell "unset" from "saved"
   keyInput.value = llmKey;
   baseInput.value = baseUrl;
   baseInput.placeholder = t.baseUrlPlaceholder;

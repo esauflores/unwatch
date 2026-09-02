@@ -49,11 +49,14 @@ Ollama, LM Studio, OpenRouter, a self-hosted vLLM, a company gateway. It adds a
 for `localhost` / `127.0.0.1`.
 
 **Model** is required here — there is no sensible default for an endpoint the
-extension has never seen. The autocomplete lists whatever the server returns from
-`/models`, sorted alphabetically, and reads both `{"data":[…]}` and a bare array,
-of objects or of plain strings. If the server doesn't implement the route you get
-the status back rather than an empty box, and you can just type the id. The **LLM
-key** may be left blank, which is what a local server usually wants.
+extension has never seen, so an empty box is filled with the first id the server
+listed (alphabetically) as soon as the lookup returns. An id you typed or saved
+is never overwritten; switching provider clears the box, since a model id belongs
+to one provider. The autocomplete lists whatever the server returns from
+`/models` and reads both `{"data":[…]}` and a bare array, of objects or of plain
+strings. If the server doesn't implement the route you get the status back rather
+than an empty box, and you can just type the id. The **LLM key** may be left
+blank, which is what a local server usually wants.
 
 Until you Save, the model lookup says so instead of failing: the host grant is
 what makes the request possible at all.
