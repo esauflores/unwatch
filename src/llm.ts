@@ -7,9 +7,9 @@ export type Provider = "anthropic" | "openai" | "gemini" | "demo";
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
 export const defaults: Record<Exclude<Provider, "demo">, string> = {
-  anthropic: "claude-haiku-4-5",
+  anthropic: "claude-sonnet-5",
   openai: "gpt-5-mini",
-  gemini: "gemini-2.5-flash",
+  gemini: "gemini-3.5-flash",
 };
 
 export function demoComplete(messages: ChatMessage[]): string {

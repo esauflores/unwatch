@@ -6,12 +6,18 @@ const form = document.getElementById("settings") as HTMLFormElement;
 bindSettingsForm(form);
 
 // Fallback only — used when there's no key yet or the /models call fails.
-// First id is each provider's blank-field default (keep in sync with llm.ts `defaults`).
-// Snapshot from models.dev, 2026-09; the live /v1/models call supersedes it.
+// Snapshot from models.dev (2026-09), newest first; the live /v1/models call supersedes it.
 const MODEL_HINTS: Record<string, string[]> = {
-  anthropic: ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-sonnet-5", "claude-opus-4-8", "claude-opus-5"],
-  openai: ["gpt-5-mini", "gpt-5-nano", "gpt-5", "gpt-5.1", "gpt-4.1-mini", "gpt-4o-mini"],
-  gemini: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro", "gemini-flash-latest", "gemini-3.5-flash"],
+  anthropic: ["claude-opus-5", "claude-sonnet-5", "claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"],
+  openai: ["gpt-5.1", "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-4.1-mini", "gpt-4o-mini"],
+  gemini: ["gemini-flash-latest", "gemini-3.5-flash", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"],
+};
+
+// Blank-field default per provider — keep in sync with llm.ts `defaults`.
+const DEFAULT_MODEL: Record<string, string> = {
+  anthropic: "claude-sonnet-5",
+  openai: "gpt-5-mini",
+  gemini: "gemini-3.5-flash",
 };
 
 // Live list straight from the provider — the only source that's actually current
@@ -27,7 +33,11 @@ async function fetchModelIds(provider: string, key: string): Promise<string[]> {
         },
       });
       const j = await r.json();
-      return (j.data ?? []).map((m: { id: string }) => m.id);
+      return (j.data ?? [])
+        .sort((a: { created_at: string }, b: { created_at: string }) =>
+          String(b.created_at).localeCompare(String(a.created_at)),
+        )
+        .map((m: { id: string }) => m.id);
     }
     if (provider === "openai") {
       const r = await fetch("https://api.openai.com/v1/models", {
@@ -35,9 +45,9 @@ async function fetchModelIds(provider: string, key: string): Promise<string[]> {
       });
       const j = await r.json();
       return (j.data ?? [])
-        .map((m: { id: string }) => m.id)
-        .filter((id: string) => /^(gpt-|o\d)/.test(id))
-        .sort();
+        .filter((m: { id: string }) => /^(gpt-|o\d)/.test(m.id))
+        .sort((a: { created: number }, b: { created: number }) => (b.created ?? 0) - (a.created ?? 0))
+        .map((m: { id: string }) => m.id);
     }
     if (provider === "gemini") {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}&pageSize=1000`);
@@ -66,7 +76,7 @@ async function refreshModelHints(): Promise<void> {
   const ids = live.length ? live : (MODEL_HINTS[provider] ?? []);
   if (providerSelect.value !== provider) return; // provider changed while awaiting
   datalist.replaceChildren(...ids.map((id) => Object.assign(document.createElement("option"), { value: id })));
-  modelInput.placeholder = (MODEL_HINTS[provider] ?? [])[0] || "default for provider";
+  modelInput.placeholder = DEFAULT_MODEL[provider] || "default for provider";
 }
 providerSelect.addEventListener("change", refreshModelHints);
 keyInput.addEventListener("change", refreshModelHints);
