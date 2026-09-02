@@ -2,6 +2,7 @@
   "name": "unwatch",
   "version": "0.0.1",
   "private": true,
+  "author": "esauflores (https://github.com/esauflores)",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",

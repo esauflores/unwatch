@@ -335,6 +335,16 @@ form#settings textarea {
   font-size: 12px;
 }
 
+.credit {
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+  margin: 28px 0 4px;
+}
+.credit a {
+  color: var(--muted);
+}
+
 .item {
   background: var(--panel);
   border: 1px solid var(--line);

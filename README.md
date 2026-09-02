@@ -119,4 +119,8 @@ src/
 Imports use the `@/` alias for `src/` (`tsconfig.json` `paths`, mirrored in
 `vitest.config.ts`; esbuild reads it from tsconfig).
 
-`pnpm test` · `pnpm typecheck`
+`pnpm test` · `pnpm typecheck` · `pnpm lint` · `pnpm fmt:check`
+
+---
+
+Made by [esauflores](https://github.com/esauflores).
