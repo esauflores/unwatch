@@ -49,9 +49,11 @@ btn("lib").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("libr
   metaEl.textContent = `${v.title}${v.verdict ? ` · ${verdictLabel(v.verdict, lang)}` : ""}`;
   renderMarkdown(out, v.filter_md ?? "", seek);
 
-  dc.style.cssText = `width:100%;border:1px solid ${C.line};border-radius:10px;background-color:${C.panel}`;
+  // deep-chat's :host defaults to display:table-cell / width:320px — force block so
+  // width:100% and the measured height actually take.
+  dc.style.cssText = `display:block;width:100%;border:1px solid ${C.line};border-radius:10px;background-color:${C.panel}`;
   const fit = () => {
-    dc.style.height = `${Math.max(320, window.innerHeight - dc.getBoundingClientRect().top - 16)}px`;
+    dc.style.height = `${Math.max(360, window.innerHeight - dc.getBoundingClientRect().top - 16)}px`;
   };
   fit();
   window.addEventListener("resize", fit);
