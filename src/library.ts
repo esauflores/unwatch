@@ -7,7 +7,7 @@ import {
   settings,
   UI,
 } from "./shared";
-import { formatTranscript, verdictLabel } from "./schema";
+import { formatTranscript, stripVerdictLine, verdictLabel } from "./schema";
 import { deleteVideo, getVideo, listVideos } from "./videos";
 
 let t = UI.en;
@@ -144,7 +144,7 @@ const setText = (id: string, s: string) => {
       tag.textContent = verdictLabel(v.verdict, lang);
       if (v.verdict) tag.dataset.v = v.verdict;
       const raw = v.filter_md ?? "";
-      renderMarkdown(el.querySelector(".md")!, raw);
+      renderMarkdown(el.querySelector(".md")!, stripVerdictLine(raw));
       el.querySelector(".copy")!.addEventListener("click", () => navigator.clipboard.writeText(raw));
       el.querySelector(".dl")!.addEventListener("click", async () => {
         const full = await getVideo(v.id);

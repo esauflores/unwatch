@@ -47,6 +47,8 @@ body.panel { max-width: none; }
 .tab:hover { background: none; color: var(--fg); }
 .tab.active { color: var(--fg); border-bottom-color: var(--accent); }
 .tab:disabled { opacity: 0.4; cursor: default; }
+#verdict { display: inline-block; margin: 10px 0 4px; }
+#verdict[hidden] { display: none; }
 details { margin: 8px 0; }
 summary { cursor: pointer; color: var(--muted); font-size: 12px; }
 

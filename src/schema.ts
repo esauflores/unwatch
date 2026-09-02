@@ -32,6 +32,17 @@ export function verdictLabel(v: Verdict | null, lang: "en" | "es"): string {
   return v ? VERDICT_LABELS[lang][v] : "—";
 }
 
+// The extract's first line is the verdict token; drop it for display since the
+// UI shows the verdict as a pill.
+export function stripVerdictLine(md: string): string {
+  const lines = md.split("\n");
+  if (lines[0] && lines[0].trim().length < 40 && parseVerdict(lines[0])) {
+    lines.shift();
+    while (lines[0] !== undefined && !lines[0].trim()) lines.shift();
+  }
+  return lines.join("\n");
+}
+
 export function extractClaimsMd(md: string): string {
   return md
     .split("\n")

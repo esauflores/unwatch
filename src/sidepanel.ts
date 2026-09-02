@@ -1,8 +1,9 @@
 import "deep-chat"; // side-effect: registers the <deep-chat> element
 import type { DeepChat } from "deep-chat";
 import { errMsg, renderMarkdown, settings, UI } from "./shared";
+import type { Lang } from "./shared";
 import { chatVideo, filterVideo, getVideo } from "./videos";
-import type { Video } from "./schema";
+import { stripVerdictLine, verdictLabel, type Video } from "./schema";
 
 type Meta = { videoId: string; title?: string; duration?: number };
 
@@ -15,6 +16,7 @@ const dc = document.getElementById("dc") as DeepChat;
 const btn = (id: string) => document.getElementById(id) as HTMLButtonElement;
 
 let videoId = "";
+let lang: Lang = "en";
 let t = UI.en;
 let chatReady = false;
 
@@ -111,7 +113,13 @@ function setupChat(v: Video): void {
 }
 
 function showVideo(v: Video): void {
-  renderMarkdown(out, v.filter_md ?? "", seek);
+  const vd = document.getElementById("verdict") as HTMLElement;
+  vd.hidden = !v.verdict;
+  if (v.verdict) {
+    vd.textContent = verdictLabel(v.verdict, lang);
+    vd.dataset.v = v.verdict;
+  }
+  renderMarkdown(out, stripVerdictLine(v.filter_md ?? ""), seek);
   setupChat(v);
 }
 
@@ -146,7 +154,8 @@ btn("tab-chat").onclick = () => showView("chat");
 btn("lib").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("library.html") });
 
 (async () => {
-  t = UI[(await settings()).lang];
+  lang = (await settings()).lang;
+  t = UI[lang];
   btn("run").textContent = t.filter;
   btn("tab-extract").textContent = t.extract;
   btn("tab-chat").textContent = t.chat;

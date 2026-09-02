@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { complete, demoComplete } from "./llm";
-import { extractClaimsMd, formatTranscript, parseVerdict } from "./schema";
+import { extractClaimsMd, formatTranscript, parseVerdict, stripVerdictLine } from "./schema";
 import { renderMarkdown } from "./shared";
 
 // Tiny fake DOM so renderMarkdown runs in the node env (no jsdom dependency).
@@ -29,6 +29,12 @@ it("parseVerdict reads the first line, either language", () => {
 
 it("extractClaimsMd keeps bullet lines only", () => {
   expect(extractClaimsMd("nuevo\n\n- a\n- b\n\nnote")).toBe("- a\n- b");
+});
+
+it("stripVerdictLine drops the leading verdict line, keeps real content", () => {
+  expect(stripVerdictLine("nuevo\n\n- a\n- b")).toBe("- a\n- b");
+  expect(stripVerdictLine("**mixed**\n- a")).toBe("- a");
+  expect(stripVerdictLine("- a\n- b")).toBe("- a\n- b"); // no verdict line → untouched
 });
 
 it("formatTranscript stamps MM:SS", () => {
