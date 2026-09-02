@@ -61,7 +61,7 @@ D1 backend (for a shared library across devices) is the plausible next step —
 
 ```
 src/
-  manifest.json  styles.css
+  manifest.json  styles.css  icon.svg → icon-{16,32,48,128}.png
   background.ts   service worker: opens the panel, MAIN-world player grab
   content.ts      videoId, title, duration, timed captions from the page
   sidepanel.ts    filter → ask → conclusiones          (+ sidepanel.html)
