@@ -22,7 +22,14 @@
           <option value="anthropic">anthropic</option>
           <option value="openai">openai</option>
           <option value="gemini">gemini</option>
+          <option value="custom">custom</option>
         </select>
+      </label>
+      <label id="row-baseurl" hidden>
+        <span id="l-baseurl">Base URL</span>
+        <!-- text, not url: a hidden-but-invalid `type=url` blocks submit with no message -->
+        <input name="baseUrl" type="text" inputmode="url" spellcheck="false" placeholder="http://localhost:11434/v1" />
+        <small id="n-baseurl" class="note"></small>
       </label>
       <label>
         <span id="l-model">Model</span>

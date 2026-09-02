@@ -1,7 +1,13 @@
 import { UI } from "@/lib/i18n";
 import { renderMarkdown } from "@/lib/markdown";
 import { formatTranscript, stripVerdictLine, verdictLabel } from "@/lib/schema";
-import { bindSettingsForm, DEFAULT_CHAT_PROMPT, DEFAULT_FILTER_PROMPT, settings } from "@/lib/settings";
+import {
+  bindSettingsForm,
+  DEFAULT_CHAT_PROMPT,
+  DEFAULT_FILTER_PROMPT,
+  normalizeBaseUrl,
+  settings,
+} from "@/lib/settings";
 import { errMsg } from "@/lib/util";
 import { deleteVideo, getVideo, listVideos } from "@/lib/videos";
 
@@ -27,8 +33,19 @@ const DEFAULT_MODEL: Record<string, string> = {
 
 // Live list straight from the provider — the only source that's actually current
 // and scoped to your key. Returns [] on any failure so the caller falls back.
-async function fetchModelIds(provider: string, key: string): Promise<string[]> {
+async function fetchModelIds(provider: string, key: string, baseUrl: string): Promise<string[]> {
   try {
+    if (provider === "custom") {
+      // Same route on any OpenAI-compatible server — but plenty of local ones
+      // don't implement it, so this has to be free to come back empty.
+      const parsed = normalizeBaseUrl(baseUrl);
+      if ("error" in parsed) return [];
+      const r = await fetch(`${parsed.url}/models`, {
+        headers: key ? { Authorization: `Bearer ${key}` } : {},
+      });
+      const j = await r.json();
+      return (j.data ?? []).map((m: { id: string }) => m.id).filter(Boolean);
+    }
     if (provider === "anthropic") {
       const r = await fetch("https://api.anthropic.com/v1/models?limit=1000", {
         headers: {
@@ -73,18 +90,31 @@ const datalist = document.getElementById("model-suggestions") as HTMLDataListEle
 const modelInput = form.elements.namedItem("model") as HTMLInputElement;
 const providerSelect = form.elements.namedItem("provider") as HTMLSelectElement;
 const keyInput = form.elements.namedItem("llmKey") as HTMLInputElement;
+const baseInput = form.elements.namedItem("baseUrl") as HTMLInputElement;
+const baseRow = document.getElementById("row-baseurl") as HTMLElement;
+
+// Base URL is meaningless for the hosted three — only show it where it applies.
+function syncCustomRow(): void {
+  baseRow.hidden = providerSelect.value !== "custom";
+}
 
 async function refreshModelHints(): Promise<void> {
   const provider = providerSelect.value;
   const key = keyInput.value.trim();
-  const live = key ? await fetchModelIds(provider, key) : [];
+  const base = baseInput.value.trim();
+  // An unauthenticated local server still lists its models; the hosted ones can't.
+  const live = key || provider === "custom" ? await fetchModelIds(provider, key, base) : [];
   const ids = live.length ? live : (MODEL_HINTS[provider] ?? []);
   if (providerSelect.value !== provider) return; // provider changed while awaiting
   datalist.replaceChildren(...ids.map((id) => Object.assign(document.createElement("option"), { value: id })));
-  modelInput.placeholder = DEFAULT_MODEL[provider] || t.modelPlaceholder;
+  modelInput.placeholder = DEFAULT_MODEL[provider] || (provider === "custom" ? t.modelRequired : t.modelPlaceholder);
 }
-providerSelect.addEventListener("change", refreshModelHints);
+providerSelect.addEventListener("change", () => {
+  syncCustomRow();
+  void refreshModelHints();
+});
 keyInput.addEventListener("change", refreshModelHints);
+baseInput.addEventListener("change", refreshModelHints);
 
 const list = document.getElementById("list")!;
 const err = document.getElementById("err")!;
@@ -95,13 +125,15 @@ const setText = (id: string, s: string) => {
 };
 
 (async () => {
-  const { lang, provider, llmKey } = await settings();
+  const { lang, provider, llmKey, baseUrl } = await settings();
   t = UI[lang];
   for (const [id, s] of [
     ["h-settings", t.settingsHeading],
     ["h-saved", t.savedHeading],
     ["l-lang", t.languageLabel],
     ["l-provider", t.providerLabel],
+    ["l-baseurl", t.baseUrlLabel],
+    ["n-baseurl", t.baseUrlNote],
     ["l-model", t.modelLabel],
     ["l-key", t.keyLabel],
     ["l-fprompt", t.filterPromptLabel],
@@ -118,6 +150,9 @@ const setText = (id: string, s: string) => {
   });
   providerSelect.value = provider;
   keyInput.value = llmKey;
+  baseInput.value = baseUrl;
+  baseInput.placeholder = t.baseUrlPlaceholder;
+  syncCustomRow();
   void refreshModelHints();
   const empty = t.nothingSaved;
   try {

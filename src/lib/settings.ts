@@ -38,10 +38,40 @@ export type Settings = {
   provider: string;
   model: string;
   llmKey: string;
+  baseUrl: string; // provider "custom" only — an OpenAI-compatible /v1 root
   lang: Lang;
   filterPrompt: string; // "" → DEFAULT_FILTER_PROMPT[lang]
   chatPrompt: string; // "" → DEFAULT_CHAT_PROMPT[lang]
 };
+
+export type BaseUrlError = "missing" | "invalid" | "insecure";
+
+// Kept to the two hosts Chrome can actually grant an http:// match pattern for.
+const isLocal = (host: string) => host === "localhost" || host === "127.0.0.1";
+
+// The key travels to whatever host is typed here, so plaintext is only allowed
+// where it cannot leave the machine. Trailing slashes go — the AI SDK appends
+// "/chat/completions" straight onto this.
+export function normalizeBaseUrl(raw: string): { url: string } | { error: BaseUrlError } {
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  if (!trimmed) return { error: "missing" };
+  let u: URL;
+  try {
+    u = new URL(trimmed);
+  } catch {
+    return { error: "invalid" };
+  }
+  if (u.protocol === "http:") {
+    return isLocal(u.hostname) ? { url: trimmed } : { error: "insecure" };
+  }
+  return u.protocol === "https:" ? { url: trimmed } : { error: "invalid" };
+}
+
+// Chrome match patterns carry no port, so one grant covers every port on the host.
+export function originPattern(url: string): string {
+  const u = new URL(url);
+  return `${u.protocol}//${u.hostname}/*`;
+}
 
 // First-run default: follow the browser UI language (still overridable in settings).
 function browserLang(): Lang {
@@ -56,6 +86,7 @@ const DEFAULTS: Settings = {
   provider: "anthropic",
   model: "",
   llmKey: "",
+  baseUrl: "",
   lang: browserLang(),
   filterPrompt: "",
   chatPrompt: "",
@@ -108,22 +139,50 @@ export function bindSettingsForm(form: HTMLFormElement): void {
     langSel.addEventListener("change", () => syncPromptDefaults(form, langSel.value === "es" ? "es" : "en"));
   }
 
+  const status = (msg: string, ok: boolean) => {
+    const el = form.querySelector("[data-saved]");
+    if (!el) return;
+    el.className = ok ? "ok" : "ok bad";
+    el.replaceChildren(document.createTextNode(msg));
+  };
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(form);
     const lang: Lang = fd.get("lang") === "es" ? "es" : "en";
+    const t = UI[lang];
+    const provider = String(fd.get("provider") || "anthropic");
+    let baseUrl = String(fd.get("baseUrl") || "").trim();
+
+    if (provider === "custom") {
+      const parsed = normalizeBaseUrl(baseUrl);
+      if ("error" in parsed) return status(t.baseUrlErrors[parsed.error], false);
+      baseUrl = parsed.url;
+      // Extension pages are subject to CORS, so an undeclared host is unreachable.
+      // Ask for this one origin only — and before any other await, so the click is
+      // still the user gesture chrome.permissions.request insists on.
+      let granted = false;
+      try {
+        granted = await chrome.permissions.request({ origins: [originPattern(baseUrl)] });
+      } catch {
+        granted = false; // malformed pattern (an IPv6 literal, say) — Chrome throws
+      }
+      if (!granted) return status(t.permissionDenied, false);
+    }
+
     const langChanged = lang !== (await settings()).lang;
     const fp = String(fd.get("filterPrompt") || "").trim();
     const cp = String(fd.get("chatPrompt") || "").trim();
     await saveSettings({
-      provider: String(fd.get("provider") || "anthropic"),
+      provider,
       model: String(fd.get("model") || ""),
       llmKey: String(fd.get("llmKey") || ""),
+      baseUrl, // kept even off `custom`, so switching back doesn't lose it
       lang,
       filterPrompt: fp === DEFAULT_FILTER_PROMPT[lang] ? "" : fp, // "" tracks the default
       chatPrompt: cp === DEFAULT_CHAT_PROMPT[lang] ? "" : cp,
     });
-    form.querySelector("[data-saved]")?.replaceChildren(document.createTextNode(UI[lang].saved));
+    status(t.saved, true);
     if (langChanged) location.reload(); // re-render this page in the new language
   });
 }

@@ -3,6 +3,7 @@ import { expect, it, vi } from "vitest";
 import { complete, demoComplete } from "@/lib/llm";
 import { renderMarkdown } from "@/lib/markdown";
 import { extractClaimsMd, formatTranscript, parseVerdict, stripVerdictLine } from "@/lib/schema";
+import { normalizeBaseUrl, originPattern } from "@/lib/settings";
 
 // Tiny fake DOM so renderMarkdown runs in the node env (no jsdom dependency).
 type FakeNode = {
@@ -107,4 +108,29 @@ it("complete falls back to demo, and rejects a real provider with no key", async
   await expect(complete({ provider: "openai", apiKey: "", model: "gpt", messages: [] })).rejects.toThrow(
     /missing llm key/,
   );
+});
+
+it("complete lets a custom endpoint run keyless, but not without a base URL or model", async () => {
+  // A keyless call must not fall through to the hosted-provider key check.
+  await expect(complete({ provider: "custom", apiKey: "", model: "llama3", messages: [] })).rejects.toThrow(
+    /missing base URL/,
+  );
+  await expect(
+    complete({ provider: "custom", apiKey: "", model: "", baseUrl: "http://localhost:11434/v1", messages: [] }),
+  ).rejects.toThrow(/no model set for custom/);
+});
+
+it("normalizeBaseUrl: https anywhere, http only on the loopback host", () => {
+  expect(normalizeBaseUrl("https://openrouter.ai/api/v1")).toEqual({ url: "https://openrouter.ai/api/v1" });
+  expect(normalizeBaseUrl("  http://localhost:11434/v1/  ")).toEqual({ url: "http://localhost:11434/v1" });
+  expect(normalizeBaseUrl("http://127.0.0.1:1234/v1")).toEqual({ url: "http://127.0.0.1:1234/v1" });
+  expect(normalizeBaseUrl("http://api.example.com/v1")).toEqual({ error: "insecure" });
+  expect(normalizeBaseUrl("api.example.com/v1")).toEqual({ error: "invalid" }); // no scheme
+  expect(normalizeBaseUrl("ftp://example.com")).toEqual({ error: "invalid" });
+  expect(normalizeBaseUrl("   ")).toEqual({ error: "missing" });
+});
+
+it("originPattern drops the port, which Chrome match patterns can't carry", () => {
+  expect(originPattern("http://localhost:11434/v1")).toBe("http://localhost/*");
+  expect(originPattern("https://openrouter.ai/api/v1")).toBe("https://openrouter.ai/*");
 });

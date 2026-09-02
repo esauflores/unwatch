@@ -31,7 +31,8 @@ storage (or removing the extension) erases all of it.
 
 When you click **Extract from this video** or send a **Chat** message, Unwatch
 sends the following directly from your browser to the provider you selected
-(Anthropic, OpenAI, or Google Gemini), authenticated with your key:
+(Anthropic, OpenAI, Google Gemini, or the OpenAI-compatible endpoint whose base
+URL you typed), authenticated with your key:
 
 - the current video's transcript and title
 - the claim bullets of your recently saved videos (Extract only, for the
@@ -49,6 +50,9 @@ provider you chose. Unwatch does not receive a copy.
 - **`sidePanel`** — render the extension UI.
 - **Host access to `api.anthropic.com`, `api.openai.com`,
   `generativelanguage.googleapis.com`** — send the LLM requests you trigger.
+- **Optional host access** — granted only if you pick the `custom` provider, and
+  only for the single host of the base URL you typed. Chrome asks before granting
+  it; declining leaves the setting unsaved. Nothing is sent anywhere else.
 
 ## No tracking
 

@@ -37,6 +37,23 @@ optional **Model**, Save. Then Extract again. Defaults: Anthropic
 The **Model** box autocompletes from the provider's own `/v1/models` once a key
 is set (falls back to a short built-in list); it's free text, so any id works.
 
+## Your own endpoint
+
+Provider `custom` points Unwatch at anything that speaks the OpenAI wire format —
+Ollama, LM Studio, OpenRouter, a self-hosted vLLM, a company gateway. It adds a
+**Base URL** field: give it the `/v1` root, e.g. `http://localhost:11434/v1` or
+`https://openrouter.ai/api/v1`. `https://` is required; `http://` is accepted only
+for `localhost` / `127.0.0.1`.
+
+**Model** is required here — there is no sensible default for an endpoint the
+extension has never seen. The autocomplete still tries the server's `/v1/models`
+and stays empty if it doesn't implement it. The **LLM key** may be left blank,
+which is what a local server usually wants.
+
+Saving asks Chrome for access to that one host (extension pages are subject to
+CORS, so an undeclared host is simply unreachable). Decline and the setting isn't
+saved. Your key is sent to that host and to no other.
+
 **Language** (Library → `English` / `Español`) switches both the panel labels and
 the language the model answers in. One mode at a time, no mixing. First run
 follows your browser's UI language; after that it's whatever you saved.
@@ -48,8 +65,8 @@ blocks are appended automatically. An untouched box follows the Language selecto
 once you edit it, it stays as written. Stored as `""` while it matches the default.
 
 The key is stored **unencrypted in this browser** (`chrome.storage.local`, same
-as a `.env` file) and is sent only to the provider you pick. Use a key with a
-spend cap.
+as a `.env` file) and is sent only to the provider you pick — for `custom`, that
+means the host in your Base URL. Use a key with a spend cap.
 
 ## What it does
 
@@ -92,7 +109,7 @@ D1 backend (for a shared library across devices) is the plausible next step —
    **full transcript + current extract** — so answers cite `t=MM:SS` and
    "rewrite the bullets" works. Turns are appended to the row.
 4. **`library.ts`** lists the rows (collapsed extract, copy, download transcript,
-   delete) and owns the provider / model / key / language form.
+   delete) and owns the provider / base URL / model / key / language form.
 
 ## Layout
 
