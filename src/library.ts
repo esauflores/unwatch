@@ -11,7 +11,6 @@ const MODEL_HINTS: Record<string, string[]> = {
   anthropic: ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-sonnet-5", "claude-opus-4-8"],
   openai: ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini", "gpt-4o"],
   gemini: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],
-  demo: [],
 };
 const datalist = document.getElementById("model-suggestions") as HTMLDataListElement;
 const modelInput = form.elements.namedItem("model") as HTMLInputElement;

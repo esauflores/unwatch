@@ -9,8 +9,8 @@ watch page as a side panel.
 
 A Chrome MV3 extension, TypeScript, bundled with esbuild. **No server:** the LLM
 call is BYOK straight from the extension (via the Vercel AI SDK), and every video
-is one row in `chrome.storage.local`. Default provider is `anthropic`; switch to
-`demo` in Library to click through with no key.
+is one row in `chrome.storage.local`. Providers: `anthropic` (default) / `openai`
+/ `gemini`. (`demo` — a keyless stub — still exists for tests but isn't in the UI.)
 
 ## Build & load
 
@@ -23,7 +23,7 @@ pnpm build          # → dist/   (pnpm watch to rebuild on save)
 2. Load unpacked → `dist/`
 3. Open a YouTube watch page that has captions
 4. Click the unwatch icon (side panel)
-5. **Library & settings** → set an LLM key (or pick provider `demo` for no key)
+5. **Library & settings** → pick a provider + paste an LLM key, Save
 6. **Filter this video** — verdict + claim bullets
 
 After every `pnpm build`, hit the reload ↻ on the extension card.
