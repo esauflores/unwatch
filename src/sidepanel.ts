@@ -80,6 +80,8 @@ function setupChat(v: Video): void {
   };
   dc.messageStyles = {
     default: {
+      // deep-chat caps .message-bubble at 60% — too narrow for a side panel
+      shared: { bubble: { maxWidth: "92%" } },
       ai: { bubble: { backgroundColor: C.panel2, color: C.fg } },
       user: { bubble: { backgroundColor: C.accent, color: C.accentInk } },
     },
