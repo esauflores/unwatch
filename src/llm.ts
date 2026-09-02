@@ -38,7 +38,9 @@ export function demoComplete(messages: ChatMessage[]): string {
 // BYOK straight from the extension. The Anthropic provider needs the browser-access
 // header or the request is CORS-blocked; the other two just take the key.
 function model(provider: Exclude<Provider, "demo">, apiKey: string, id: string) {
-  if (provider === "openai") return createOpenAI({ apiKey })(id);
+  // .chat() = /v1/chat/completions, which takes `system` role messages; the
+  // callable shorthand defaults to the Responses API, which rejects them.
+  if (provider === "openai") return createOpenAI({ apiKey }).chat(id);
   if (provider === "gemini") return createGoogleGenerativeAI({ apiKey })(id);
   return createAnthropic({ apiKey, headers: { "anthropic-dangerous-direct-browser-access": "true" } })(id);
 }
