@@ -8,8 +8,9 @@ actually cares about → pull article-ready conclusiones. unwatch puts that on t
 watch page as a side panel.
 
 A Chrome MV3 extension, TypeScript, bundled with esbuild. **No server:** the LLM
-call is BYOK straight from the extension, and every video is one row in
-`chrome.storage.local`. Provider `demo` (the default) clicks through with no key.
+call is BYOK straight from the extension (via the Vercel AI SDK), and every video
+is one row in `chrome.storage.local`. Default provider is `anthropic`; switch to
+`demo` in Library to click through with no key.
 
 ## Build & load
 
@@ -22,8 +23,8 @@ pnpm build          # → dist/   (pnpm watch to rebuild on save)
 2. Load unpacked → `dist/`
 3. Open a YouTube watch page that has captions
 4. Click the unwatch icon (side panel)
-5. **Filter this video** — demo markdown, no key
-6. Panel **Library** — settings + saved bullets
+5. **Library & settings** → set an LLM key (or pick provider `demo` for no key)
+6. **Filter this video** — verdict + claim bullets
 
 After every `pnpm build`, hit the reload ↻ on the extension card.
 

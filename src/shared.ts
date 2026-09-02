@@ -8,7 +8,7 @@ export type Settings = {
 };
 
 const DEFAULTS: Settings = {
-  provider: "demo",
+  provider: "anthropic",
   model: "",
   llmKey: "",
   lang: "en",
@@ -120,7 +120,7 @@ export function bindSettingsForm(form: HTMLFormElement): void {
     e.preventDefault();
     const fd = new FormData(form);
     await saveSettings({
-      provider: String(fd.get("provider") || "demo"),
+      provider: String(fd.get("provider") || "anthropic"),
       model: String(fd.get("model") || ""),
       llmKey: String(fd.get("llmKey") || ""),
       lang: fd.get("lang") === "es" ? "es" : "en",

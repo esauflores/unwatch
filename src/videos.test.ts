@@ -2,8 +2,9 @@ import { beforeEach, expect, it } from "vitest";
 import { chatVideo, conclusionesVideo, filterVideo, getVideo, listVideos } from "./videos";
 
 // Minimal chrome.storage.local stub — an in-memory object behind get/set.
+// Seeded with the demo provider so the flow runs offline.
 beforeEach(() => {
-  const store: Record<string, unknown> = {};
+  const store: Record<string, unknown> = { provider: "demo" };
   (globalThis as any).chrome = {
     storage: {
       local: {

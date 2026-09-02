@@ -23,7 +23,7 @@ function put(videos: Video[], video: Video): Video[] {
 
 async function llmOpts() {
   const s = await settings();
-  const provider = (s.provider || "demo") as Provider;
+  const provider = (s.provider || "anthropic") as Provider;
   const model = s.model || (provider !== "demo" ? defaults[provider] : "demo");
   return { provider, apiKey: s.llmKey, model, demo: provider === "demo", lang: s.lang };
 }

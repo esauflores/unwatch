@@ -19,13 +19,16 @@
       <label>
         Provider
         <select name="provider">
-          <option value="demo">demo (no key)</option>
-          <option value="gemini">gemini</option>
           <option value="anthropic">anthropic</option>
           <option value="openai">openai</option>
+          <option value="gemini">gemini</option>
+          <option value="demo">demo (no key)</option>
         </select>
       </label>
-      <label>Model (optional) <input name="model" placeholder="default for provider" /></label>
+      <label>Model (optional)
+        <input name="model" list="model-suggestions" placeholder="default for provider" />
+        <datalist id="model-suggestions"></datalist>
+      </label>
       <label>LLM key <input name="llmKey" type="password" autocomplete="off" /></label>
       <div class="row">
         <button class="primary" type="submit">Save</button>
