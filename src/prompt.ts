@@ -52,9 +52,15 @@ export function chatMessages(
   return [
     {
       role: "system",
-      content: `Answer only from this video's transcript. If it is not in the transcript, say so. Cite t=MM:SS. Be short unless asked for more. ${respondIn(lang)}`,
+      content: [
+        `You answer questions about the YouTube video "${title}" using only its full transcript below.`,
+        "If the answer is not in the transcript, say so. Cite t=MM:SS. Be short unless asked for more.",
+        respondIn(lang),
+        "",
+        "Transcript:",
+        formatTranscript(cues),
+      ].join("\n"),
     },
-    { role: "user", content: `Title: ${title}\n\nTranscript:\n\n${formatTranscript(cues)}` },
     ...history,
     { role: "user", content: `Question: ${question}` },
   ];
