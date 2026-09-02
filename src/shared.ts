@@ -43,11 +43,20 @@ export type Settings = {
   chatPrompt: string; // "" → DEFAULT_CHAT_PROMPT[lang]
 };
 
+// First-run default: follow the browser UI language (still overridable in settings).
+function browserLang(): Lang {
+  try {
+    return chrome.i18n.getUILanguage().toLowerCase().startsWith("es") ? "es" : "en";
+  } catch {
+    return "en";
+  }
+}
+
 const DEFAULTS: Settings = {
   provider: "anthropic",
   model: "",
   llmKey: "",
-  lang: "en",
+  lang: browserLang(),
   filterPrompt: "",
   chatPrompt: "",
 };
