@@ -157,7 +157,7 @@ async function busy(id: string, fn: () => Promise<void>): Promise<void> {
   const b = btn(id);
   if (b.disabled) return;
   b.disabled = true;
-  b.classList.add("loading");
+  b.classList.add("busy");
   showErr("");
   try {
     await fn();
@@ -165,7 +165,7 @@ async function busy(id: string, fn: () => Promise<void>): Promise<void> {
     showErr(errMsg(e));
   } finally {
     b.disabled = false;
-    b.classList.remove("loading");
+    b.classList.remove("busy");
   }
 }
 

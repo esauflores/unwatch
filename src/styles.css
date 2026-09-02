@@ -115,10 +115,10 @@ body.panel {
   }
 }
 
-button.loading {
+button.busy {
   pointer-events: none;
 }
-button.loading::before {
+button.busy::before {
   content: "";
   display: inline-block;
   width: 12px;
