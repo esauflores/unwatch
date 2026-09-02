@@ -67,6 +67,26 @@ prompt cache / multi-user accounts, map-reduce for long videos. A hosted Hono +
 D1 backend (for a shared library across devices) is the plausible next step —
 `videos.ts` is already the route-handler shape.
 
+## How it works
+
+1. **`content.ts`** runs on every `youtube.com/*` page: reads `videoId` / title /
+   duration, and on request pulls the transcript — `youtube-transcript` (lib)
+   first, then scrapes YouTube's own "Show transcript" panel if that returns an
+   empty body (PoToken-gated videos).
+2. **Extract this video** (side panel) → `sidepanel.ts` asks the tab for the
+   transcript, then `videos.ts#filterVideo`: `prompt.ts` builds the prompt from
+   the transcript + the claim bullets of your last ~50 saved videos → one
+   `generateText` call in `llm.ts` (Vercel AI SDK, your key) → first line parsed
+   into a verdict → row saved to `chrome.storage.local` → card rendered. A **Chat**
+   button appears in the header.
+3. **Chat** → opens `chat.html?v=<id>` in a tab. `chat.ts` loads the row, seeds a
+   deep-chat widget with the stored history; each message runs
+   `videos.ts#chatVideo` with a system prompt of **full transcript + current
+   extract** — so answers cite `t=MM:SS` (click → seeks the YouTube tab) and
+   "rewrite the bullets" works. Turns are appended to the row.
+4. **`library.ts`** lists the rows (collapsed extract, copy, download transcript,
+   delete) and owns the provider / model / key / language form.
+
 ## Layout
 
 ```
