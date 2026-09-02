@@ -9,6 +9,7 @@ const out = document.getElementById("out")!;
 const chatEl = document.getElementById("chat")!;
 const q = document.getElementById("q") as HTMLTextAreaElement;
 const metaEl = document.getElementById("meta")!;
+const askPanel = document.getElementById("ask-panel")!;
 const btn = (id: string) => document.getElementById(id) as HTMLButtonElement;
 
 let videoId = "";
@@ -44,6 +45,7 @@ function seek(t: number): void {
 const renderMd = (el: HTMLElement, text: string): void => renderMarkdown(el, text, seek);
 
 function showVideo(v: Video): void {
+  btn("chat-toggle").hidden = false; // an extracted video exists → chat is available
   renderMd(out, v.filter_md ?? "");
   const parts: string[] = [];
   for (const turn of v.chat_json ?? []) {
@@ -112,6 +114,10 @@ btn("conc").onclick = () =>
     appendChat(`## ${t.notes} (${t.copied})\n${conclusiones_md}`);
   });
 
+btn("chat-toggle").onclick = () => {
+  askPanel.hidden = !askPanel.hidden;
+};
+
 document.getElementById("lib")!.onclick = () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("library.html") });
 };
@@ -119,6 +125,7 @@ document.getElementById("lib")!.onclick = () => {
 (async () => {
   t = UI[(await settings()).lang];
   btn("run").textContent = t.filter;
+  btn("chat-toggle").textContent = t.chat;
   btn("ask").textContent = t.ask;
   btn("conc").textContent = t.notes;
   btn("lib").textContent = t.library;

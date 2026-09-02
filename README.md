@@ -24,14 +24,14 @@ pnpm build          # → dist/   (pnpm watch to rebuild on save)
 3. Open a YouTube watch page that has captions
 4. Click the unwatch icon (side panel)
 5. **Library & settings** → pick a provider + paste an LLM key, Save
-6. **Filter this video** — verdict + claim bullets
+6. **Extract from this video** — verdict + claim bullets. **Chat** (header) opens the ask panel
 
 After every `pnpm build`, hit the reload ↻ on the extension card.
 
 ## Real model
 
 Library → **Provider** (`anthropic` / `openai` / `gemini`) + **LLM key** +
-optional **Model**, Save. Then Filter again. Defaults: Anthropic
+optional **Model**, Save. Then Extract again. Defaults: Anthropic
 `claude-sonnet-5`, OpenAI `gpt-5-mini`, Gemini `gemini-3.5-flash`.
 
 The **Model** box autocompletes from the provider's own `/v1/models` once a key

@@ -32,6 +32,7 @@ header {
   gap: 8px;
   margin-bottom: 10px;
 }
+.hdr-btns { display: flex; gap: 6px; flex: none; }
 
 h1 {
   font-size: 15px;

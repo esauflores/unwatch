@@ -16,6 +16,7 @@ const DEFAULTS: Settings = {
 
 export const UI: Record<Lang, {
   filter: string;
+  chat: string;
   ask: string;
   notes: string;
   library: string;
@@ -24,7 +25,8 @@ export const UI: Record<Lang, {
   copied: string;
 }> = {
   en: {
-    filter: "Filter this video",
+    filter: "Extract from this video",
+    chat: "Chat",
     ask: "Ask",
     notes: "Notes",
     library: "Library & settings",
@@ -33,7 +35,8 @@ export const UI: Record<Lang, {
     copied: "copied",
   },
   es: {
-    filter: "Filtrar este video",
+    filter: "Extraer de este video",
+    chat: "Chat",
     ask: "Preguntar",
     notes: "Conclusiones",
     library: "Biblioteca y ajustes",
