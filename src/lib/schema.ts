@@ -1,3 +1,5 @@
+import { dropWhile } from "lodash-es";
+
 export type Cue = { t: number; text: string };
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 export type Verdict = "nuevo" | "ya_visto" | "mixto";
@@ -38,7 +40,7 @@ export function stripVerdictLine(md: string): string {
   const lines = md.split("\n");
   if (lines[0] && lines[0].trim().length < 40 && parseVerdict(lines[0])) {
     lines.shift();
-    while (lines[0] !== undefined && !lines[0].trim()) lines.shift();
+    return dropWhile(lines, (l) => !l.trim()).join("\n");
   }
   return lines.join("\n");
 }

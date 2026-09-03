@@ -310,19 +310,6 @@ label[hidden] {
   font-size: 11px;
   color: var(--muted);
 }
-.note.bad {
-  color: #f2777a;
-}
-/* model status + its Refresh button sit on one line under the Model field */
-.row.tight {
-  align-items: center;
-  gap: 10px;
-  margin: 6px 0 0;
-}
-.row.tight .note {
-  flex: 1;
-  margin-top: 0;
-}
 label input,
 label select {
   margin-top: 4px;

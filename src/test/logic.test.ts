@@ -4,7 +4,6 @@ import { complete, demoComplete } from "@/lib/llm";
 import { renderMarkdown } from "@/lib/markdown";
 import { extractClaimsMd, formatTranscript, parseVerdict, stripVerdictLine } from "@/lib/schema";
 import { normalizeBaseUrl, originPattern } from "@/lib/settings";
-import { modelIds } from "@/lib/util";
 
 // Tiny fake DOM so renderMarkdown runs in the node env (no jsdom dependency).
 type FakeNode = {
@@ -129,14 +128,6 @@ it("normalizeBaseUrl: https anywhere, http only on the loopback host", () => {
   expect(normalizeBaseUrl("api.example.com/v1")).toEqual({ error: "invalid" }); // no scheme
   expect(normalizeBaseUrl("ftp://example.com")).toEqual({ error: "invalid" });
   expect(normalizeBaseUrl("   ")).toEqual({ error: "missing" });
-});
-
-it("modelIds copes with the shapes OpenAI-compatible servers actually return", () => {
-  expect(modelIds([{ id: "llama3" }, { id: "qwen" }])).toEqual(["llama3", "qwen"]);
-  expect(modelIds(["llama3", "qwen"])).toEqual(["llama3", "qwen"]); // bare strings
-  expect(modelIds([{ id: "a" }, { name: "no-id" }, null, 7, { id: 3 }])).toEqual(["a"]); // junk dropped
-  expect(modelIds({ data: [] })).toEqual([]); // not an array → nothing
-  expect(modelIds(undefined)).toEqual([]);
 });
 
 it("originPattern drops the port, which Chrome match patterns can't carry", () => {

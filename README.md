@@ -34,11 +34,9 @@ Library → **Provider** (`anthropic` / `openai` / `gemini`) + **LLM key** +
 optional **Model**, Save. Then Extract again. Defaults: Anthropic
 `claude-sonnet-5`, OpenAI `gpt-5-mini`, Gemini `gemini-3.5-flash`.
 
-The **Model** box autocompletes from the provider's own `/v1/models` once a key
-is set (falls back to a short built-in list); it's free text, so any id works.
-The line under it says where the list came from — live, built-in, or the reason
-the lookup failed (a `401` from a bad key shows as one). It re-runs as you type a
-key or URL, and **Refresh** forces it.
+The **Model** box is free text with a short built-in list of common ids as
+suggestions (from models.dev); leave it blank for the provider default, or type
+any id — including one not on the list.
 
 ## Your own endpoint
 
@@ -49,17 +47,9 @@ Ollama, LM Studio, OpenRouter, a self-hosted vLLM, a company gateway. It adds a
 for `localhost` / `127.0.0.1`.
 
 **Model** is required here — there is no sensible default for an endpoint the
-extension has never seen, so an empty box is filled with the first id the server
-listed (alphabetically) as soon as the lookup returns. An id you typed or saved
-is never overwritten; switching provider clears the box, since a model id belongs
-to one provider. The autocomplete lists whatever the server returns from
-`/models` and reads both `{"data":[…]}` and a bare array, of objects or of plain
-strings. If the server doesn't implement the route you get the status back rather
-than an empty box, and you can just type the id. The **LLM key** may be left
-blank, which is what a local server usually wants.
-
-Until you Save, the model lookup says so instead of failing: the host grant is
-what makes the request possible at all.
+extension has never seen. It's free text with no suggestions: type the id your
+server serves (e.g. `llama3.2`). Switching provider clears the box. The **LLM
+key** may be left blank, which is what a local server usually wants.
 
 Saving asks Chrome for access to that one host (extension pages are subject to
 CORS, so an undeclared host is simply unreachable). Decline and the setting isn't

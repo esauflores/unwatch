@@ -17,13 +17,6 @@ type Strings = {
   modelLabel: string;
   modelPlaceholder: string;
   modelRequired: string;
-  modelsLoading: string;
-  modelsNone: string;
-  modelsNeedSave: string;
-  modelsFound: (n: number) => string;
-  modelsBuiltin: (n: number) => string;
-  modelsFailed: (msg: string) => string;
-  refreshModels: string;
   keyLabel: string;
   baseUrlLabel: string;
   baseUrlPlaceholder: string;
@@ -59,13 +52,6 @@ export const UI: Record<Lang, Strings> = {
     modelLabel: "Model",
     modelPlaceholder: "default for provider",
     modelRequired: "required — no default for a custom endpoint",
-    modelsLoading: "listing models…",
-    modelsNone: "no models listed — type an id yourself",
-    modelsNeedSave: "Save first — Chrome has to grant access to that host before the list can load",
-    modelsFound: (n) => `${n} models from this endpoint`,
-    modelsBuiltin: (n) => `${n} built-in suggestions — add a key to list the real ones`,
-    modelsFailed: (msg) => `couldn't list models — ${msg}`,
-    refreshModels: "Refresh",
     keyLabel: "LLM key",
     baseUrlLabel: "Base URL",
     baseUrlNote: "Any OpenAI-compatible server. Your key is sent to this host, and only to it.",
@@ -103,13 +89,6 @@ export const UI: Record<Lang, Strings> = {
     modelLabel: "Modelo",
     modelPlaceholder: "predeterminado del proveedor",
     modelRequired: "obligatorio — un endpoint propio no tiene predeterminado",
-    modelsLoading: "listando modelos…",
-    modelsNone: "sin modelos listados — escribe un id a mano",
-    modelsNeedSave: "Guarda primero — Chrome debe conceder acceso a ese host para poder listar",
-    modelsFound: (n) => `${n} modelos de este endpoint`,
-    modelsBuiltin: (n) => `${n} sugerencias integradas — añade una clave para listar las reales`,
-    modelsFailed: (msg) => `no se pudieron listar los modelos — ${msg}`,
-    refreshModels: "Refrescar",
     keyLabel: "Clave del LLM",
     baseUrlLabel: "URL base",
     baseUrlNote: "Cualquier servidor compatible con OpenAI. Tu clave se envía a este host, y solo a él.",

@@ -1,5 +1,6 @@
 import "deep-chat"; // side-effect: registers the <deep-chat> element
 import type { DeepChat } from "deep-chat";
+import { debounce } from "lodash-es";
 
 import { type Lang, UI } from "@/lib/i18n";
 import { renderMarkdown } from "@/lib/markdown";
@@ -228,12 +229,9 @@ async function refresh(): Promise<void> {
 // The panel is global (one per window); debounce the triggers so a burst of
 // events (tab switch + SPA nav firing together) is one refresh.
 let ready = false;
-let refreshTimer: ReturnType<typeof setTimeout> | undefined;
-function scheduleRefresh(): void {
-  if (!ready) return;
-  clearTimeout(refreshTimer);
-  refreshTimer = setTimeout(() => void refresh(), 250);
-}
+const scheduleRefresh = debounce(() => {
+  if (ready) void refresh();
+}, 250);
 chrome.tabs.onActivated.addListener(scheduleRefresh);
 chrome.tabs.onUpdated.addListener((_id, info, tab) => {
   if (info.url && tab.active) scheduleRefresh();

@@ -1,3 +1,5 @@
+import { trimEnd } from "lodash-es";
+
 import { type Lang, UI } from "@/lib/i18n";
 
 // Editable system prompts, one default per language. {verdict}/{overlap} are
@@ -53,7 +55,7 @@ const isLocal = (host: string) => host === "localhost" || host === "127.0.0.1";
 // where it cannot leave the machine. Trailing slashes go — the AI SDK appends
 // "/chat/completions" straight onto this.
 export function normalizeBaseUrl(raw: string): { url: string } | { error: BaseUrlError } {
-  const trimmed = raw.trim().replace(/\/+$/, "");
+  const trimmed = trimEnd(raw.trim(), "/");
   if (!trimmed) return { error: "missing" };
   let u: URL;
   try {
