@@ -6,7 +6,7 @@ import { classify, UnwatchError } from "@/lib/errors";
 import { type Lang, UI } from "@/lib/i18n";
 import { defaults } from "@/lib/llm";
 import { renderMarkdown } from "@/lib/markdown";
-import { formatTranscript, stripVerdictLine, verdictLabel, type Video } from "@/lib/schema";
+import { formatTranscript, parseVerdict, stripVerdictLine, type Verdict, verdictLabel, type Video } from "@/lib/schema";
 import { bindSettingsForm, DEFAULT_CHAT_PROMPT, DEFAULT_FILTER_PROMPT, settings } from "@/lib/settings";
 import { initTabs } from "@/lib/tabs";
 import { errMsg } from "@/lib/util";
@@ -131,17 +131,30 @@ function setupChat(v: Video): void {
     };
     dc.submitButtonStyles = { submit: { container: { default: { backgroundColor: C.accent } } } };
     dc.connect = {
-      handler: async (
+      stream: true,
+      handler: (
         body: { messages?: { text?: string }[] },
-        signals: { onResponse: (r: { text?: string; error?: string }) => void },
+        signals: {
+          onResponse: (r: { text?: string; error?: string }) => void;
+          onOpen: () => void;
+          onClose: () => void;
+          stopClicked: { listener: () => void };
+        },
       ) => {
         const msg = body.messages?.[body.messages.length - 1]?.text ?? "";
-        try {
-          const { answer } = await chatVideo(videoId, msg); // videoId is kept current by refresh()
-          signals.onResponse({ text: answer });
-        } catch (e) {
-          signals.onResponse({ error: describeError(e) });
-        }
+        const ac = new AbortController();
+        signals.stopClicked.listener = () => ac.abort(); // the chat's stop button
+        signals.onOpen();
+        void (async () => {
+          try {
+            // videoId is kept current by refresh(); chunks append to the bubble.
+            await chatVideo(videoId, msg, (chunk) => signals.onResponse({ text: chunk }), ac.signal);
+          } catch (e) {
+            if (!ac.signal.aborted) signals.onResponse({ error: describeError(e) });
+          } finally {
+            signals.onClose();
+          }
+        })();
       },
     };
   }
@@ -155,14 +168,18 @@ function setupChat(v: Video): void {
   }
 }
 
+// Idempotent — safe to call on every stream chunk as the verdict firms up.
+function setVerdict(v: Verdict | null): void {
+  verdictEl.hidden = !v;
+  if (v) {
+    verdictEl.textContent = verdictLabel(v, lang);
+    verdictEl.dataset.v = v;
+  }
+}
+
 function showVideo(v: Video): void {
   current = v;
-  const vd = document.getElementById("verdict") as HTMLElement;
-  vd.hidden = !v.verdict;
-  if (v.verdict) {
-    vd.textContent = verdictLabel(v.verdict, lang);
-    vd.dataset.v = v.verdict;
-  }
+  setVerdict(v.verdict);
   renderMarkdown(out, stripVerdictLine(v.filter_md ?? ""), seek);
   setupChat(v);
   syncDlRow();
@@ -190,7 +207,19 @@ btn("run").onclick = () =>
   void busy("run", async () => {
     const p = await send({ type: "unwatch:page" });
     setMeta(p);
-    showVideo(await filterVideo({ videoId: p.videoId, title: p.title, cues: p.cues }));
+    clearVideoUI(); // fresh panel to stream into
+    let acc = "";
+    try {
+      const v = await filterVideo({ videoId: p.videoId, title: p.title, cues: p.cues }, (chunk) => {
+        acc += chunk;
+        renderMarkdown(out, stripVerdictLine(acc), seek);
+        setVerdict(parseVerdict(acc));
+      });
+      showVideo(v); // final clean render + wire chat + enable downloads
+    } catch (e) {
+      clearVideoUI(); // drop the partial render
+      throw e;
+    }
   });
 
 // ---- Library tab: downloads for the current video + the saved-video list ----

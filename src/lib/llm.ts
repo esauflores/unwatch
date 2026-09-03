@@ -1,12 +1,21 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
-import { generateText, type ModelMessage } from "ai";
+import { type ModelMessage, streamText } from "ai";
 
 import { UnwatchError } from "@/lib/errors";
 
 export type Provider = "anthropic" | "openai" | "gemini" | "custom" | "demo";
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+
+export type CompleteOpts = {
+  provider: Provider;
+  apiKey: string;
+  model: string;
+  messages: ChatMessage[];
+  baseUrl?: string;
+  demo?: boolean;
+};
 
 // `custom` is deliberately absent: the base URL decides which ids exist, so there
 // is no sane guess. complete() turns an empty model into a message instead.
@@ -48,51 +57,68 @@ function model(provider: Exclude<Provider, "demo">, apiKey: string, id: string, 
   return createAnthropic({ apiKey, headers: { "anthropic-dangerous-direct-browser-access": "true" } })(id);
 }
 
-export async function complete(opts: {
-  provider: Provider;
-  apiKey: string;
-  model: string;
-  messages: ChatMessage[];
-  baseUrl?: string;
-  demo?: boolean;
-}): Promise<string> {
-  if (opts.demo || opts.provider === "demo") return demoComplete(opts.messages);
+function guard(opts: CompleteOpts): void {
   // A local endpoint is usually unauthenticated; every hosted one needs a key.
   if (!opts.apiKey && opts.provider !== "custom") throw new UnwatchError("key_missing");
   // Without this, createOpenAI would quietly fall back to api.openai.com.
   if (opts.provider === "custom" && !opts.baseUrl) throw new Error("missing base URL — set one in Library settings");
   if (!opts.model) throw new Error(`no model set for ${opts.provider} — pick one in Library settings`);
+}
 
-  // The AI SDK rejects `role: "system"` inside `messages` — hoist it to `system`.
-  const system = opts.messages
+// The AI SDK rejects `role: "system"` inside `messages` — hoist it to `system`.
+function splitSystem(messages: ChatMessage[]): { system: string; rest: ModelMessage[] } {
+  const system = messages
     .filter((m) => m.role === "system")
     .map((m) => m.content)
     .join("\n\n");
-  const rest = opts.messages.filter((m) => m.role !== "system") as ModelMessage[];
+  return { system, rest: messages.filter((m) => m.role !== "system") as ModelMessage[] };
+}
 
-  // No default timeout in the SDK — a hung connection would wait forever. A flag
-  // (not signal.aborted) tells our timeout apart from a future caller-supplied
-  // abort, e.g. #3's stream-cancel: that one should surface as its own error.
-  const ac = new AbortController();
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    ac.abort();
-  }, 120_000);
-  let text: string;
+// Streaming BYOK call: feed each chunk to onDelta, resolve to the full text.
+// `signal` lets a caller cancel (deep-chat's stop button) — that surfaces as the
+// raw abort error, kept distinct from our own 120s timeout via `timeout.aborted`.
+export async function stream(
+  opts: CompleteOpts & { onDelta: (chunk: string) => void; signal?: AbortSignal },
+): Promise<string> {
+  if (opts.demo || opts.provider === "demo") {
+    const text = demoComplete(opts.messages);
+    opts.onDelta(text);
+    return text;
+  }
+  guard(opts);
+  const { system, rest } = splitSystem(opts.messages);
+
+  // No default timeout in the SDK. `timeout.aborted` afterwards tells our 120s
+  // limit apart from a caller-supplied abort (deep-chat's stop button).
+  const timeout = AbortSignal.timeout(120_000);
+  const abortSignal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout;
+
+  // streamText routes stream errors to onError rather than throwing from the
+  // iterable in some paths — capture there and re-throw after the loop.
+  let captured: unknown;
   try {
-    ({ text } = await generateText({
+    const result = streamText({
       model: model(opts.provider, opts.apiKey, opts.model, opts.baseUrl),
       system: system || undefined,
       messages: rest,
-      abortSignal: ac.signal,
-    }));
+      abortSignal,
+      onError: ({ error }) => {
+        captured = error;
+      },
+    });
+    for await (const delta of result.textStream) opts.onDelta(delta);
+    if (captured) throw captured;
+    const text = await result.text;
+    if (!text) throw new UnwatchError("empty_response", opts.provider);
+    return text;
   } catch (e) {
-    if (timedOut) throw new UnwatchError("timeout", opts.provider);
-    throw e;
-  } finally {
-    clearTimeout(timer);
+    if (timeout.aborted) throw new UnwatchError("timeout", opts.provider);
+    throw captured ?? e;
   }
-  if (!text) throw new UnwatchError("empty_response", opts.provider);
-  return text;
+}
+
+// Non-streaming: run the stream and hand back only the final string. Kept for the
+// demo path and callers (tests) that don't want chunks.
+export async function complete(opts: CompleteOpts): Promise<string> {
+  return stream({ ...opts, onDelta: () => {} });
 }

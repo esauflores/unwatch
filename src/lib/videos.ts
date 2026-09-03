@@ -1,4 +1,4 @@
-import { complete, defaults, type Provider } from "@/lib/llm";
+import { defaults, type Provider, stream } from "@/lib/llm";
 import { chatMessages, filterMessages } from "@/lib/prompt";
 import { type Cue, extractClaimsMd, type ListItem, listItem, parseVerdict, type Video } from "@/lib/schema";
 import { resolvedPrompts, settings } from "@/lib/settings";
@@ -51,7 +51,10 @@ export async function deleteVideo(id: string): Promise<void> {
   await save((await load()).filter((v) => v.id !== id));
 }
 
-export async function filterVideo(input: { videoId: string; title: string; cues: Cue[] }): Promise<Video> {
+export async function filterVideo(
+  input: { videoId: string; title: string; cues: Cue[] },
+  onDelta: (chunk: string) => void = () => {},
+): Promise<Video> {
   const videos = await load();
   const existing = videos.find((v) => v.id === input.videoId);
   const past = videos
@@ -60,9 +63,11 @@ export async function filterVideo(input: { videoId: string; title: string; cues:
     .map((v) => ({ title: v.title, claims_md: v.claims_md }));
 
   const { lang, filterPrompt, chatPrompt: _cp, ...llm } = await llmOpts();
-  const filter_md = await complete({
+  // Streamed to the panel; the row is still written once, below, when it resolves.
+  const filter_md = await stream({
     ...llm,
     messages: filterMessages(input.title, input.cues, past, lang, filterPrompt),
+    onDelta,
   });
 
   const video: Video = {
@@ -79,23 +84,45 @@ export async function filterVideo(input: { videoId: string; title: string; cues:
   return video;
 }
 
-export async function chatVideo(id: string, message: string): Promise<{ answer: string }> {
+export async function chatVideo(
+  id: string,
+  message: string,
+  onDelta: (chunk: string) => void = () => {},
+  signal?: AbortSignal,
+): Promise<{ answer: string }> {
   const videos = await load();
   const video = videos.find((v) => v.id === id);
   if (!video) throw new Error("filter this video first");
   const { lang, chatPrompt, filterPrompt: _fp, ...llm } = await llmOpts();
-  const answer = await complete({
-    ...llm,
-    messages: chatMessages(
-      video.title,
-      video.filter_md,
-      video.transcript_json,
-      video.chat_json,
-      message,
-      lang,
-      chatPrompt,
-    ),
-  });
+  const messages = chatMessages(
+    video.title,
+    video.filter_md,
+    video.transcript_json,
+    video.chat_json,
+    message,
+    lang,
+    chatPrompt,
+  );
+
+  let acc = "";
+  let answer: string;
+  try {
+    answer = await stream({
+      ...llm,
+      messages,
+      onDelta: (c) => {
+        acc += c;
+        onDelta(c);
+      },
+      signal,
+    });
+  } catch (e) {
+    // Deliberate stop → keep the question and whatever streamed. A real failure
+    // (or a stop before any output) → discard, as a failed extract does.
+    if (!(signal?.aborted && acc.trim())) throw e;
+    answer = acc;
+  }
+
   video.chat_json.push({ role: "user", content: message }, { role: "assistant", content: answer });
   await save(videos);
   return { answer };

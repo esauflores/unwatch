@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
 
 import { classify, UnwatchError } from "@/lib/errors";
-import { complete, demoComplete } from "@/lib/llm";
+import { complete, demoComplete, stream } from "@/lib/llm";
 import { renderMarkdown } from "@/lib/markdown";
 import { extractClaimsMd, formatTranscript, parseVerdict, stripVerdictLine } from "@/lib/schema";
 import { normalizeBaseUrl, originPattern } from "@/lib/settings";
@@ -107,6 +107,19 @@ it("complete falls back to demo, and rejects a real provider with no key", async
     }),
   ).toMatch(/^new/);
   await expect(complete({ provider: "openai", apiKey: "", model: "gpt", messages: [] })).rejects.toThrow(/key_missing/);
+});
+
+it("stream: demo feeds onDelta and resolves to the same text", async () => {
+  const chunks: string[] = [];
+  const text = await stream({
+    provider: "demo",
+    apiKey: "",
+    model: "demo",
+    messages: [{ role: "user", content: "Transcript:" }],
+    onDelta: (c) => chunks.push(c),
+  });
+  expect(text).toMatch(/^new/);
+  expect(chunks).toEqual([text]);
 });
 
 it("classify: known error shapes -> ErrCode, unknown -> null", () => {
