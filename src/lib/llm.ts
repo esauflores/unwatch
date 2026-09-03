@@ -3,10 +3,12 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText, type ModelMessage } from "ai";
 
-export type Provider = "anthropic" | "openai" | "gemini" | "demo";
+export type Provider = "anthropic" | "openai" | "gemini" | "custom" | "demo";
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
-export const defaults: Record<Exclude<Provider, "demo">, string> = {
+// `custom` is deliberately absent: the base URL decides which ids exist, so there
+// is no sane guess. complete() turns an empty model into a message instead.
+export const defaults: Partial<Record<Exclude<Provider, "demo">, string>> = {
   anthropic: "claude-sonnet-5",
   openai: "gpt-5-mini",
   gemini: "gemini-3.5-flash",
@@ -32,11 +34,15 @@ export function demoComplete(messages: ChatMessage[]): string {
 
 // BYOK straight from the extension. The Anthropic provider needs the browser-access
 // header or the request is CORS-blocked; the other two just take the key.
-function model(provider: Exclude<Provider, "demo">, apiKey: string, id: string) {
+function model(provider: Exclude<Provider, "demo">, apiKey: string, id: string, baseUrl?: string) {
   // .chat() = /v1/chat/completions, which takes `system` role messages; the
   // callable shorthand defaults to the Responses API, which rejects them.
   if (provider === "openai") return createOpenAI({ apiKey }).chat(id);
   if (provider === "gemini") return createGoogleGenerativeAI({ apiKey })(id);
+  // Anything OpenAI-shaped: Ollama, LM Studio, OpenRouter, vLLM, a company gateway.
+  // Local servers want no key at all, but an empty Bearer trips some of them, so
+  // send the placeholder the Ollama docs use.
+  if (provider === "custom") return createOpenAI({ apiKey: apiKey || "unused", baseURL: baseUrl }).chat(id);
   return createAnthropic({ apiKey, headers: { "anthropic-dangerous-direct-browser-access": "true" } })(id);
 }
 
@@ -45,10 +51,15 @@ export async function complete(opts: {
   apiKey: string;
   model: string;
   messages: ChatMessage[];
+  baseUrl?: string;
   demo?: boolean;
 }): Promise<string> {
   if (opts.demo || opts.provider === "demo") return demoComplete(opts.messages);
-  if (!opts.apiKey) throw new Error("missing llm key — set one in Library settings");
+  // A local endpoint is usually unauthenticated; every hosted one needs a key.
+  if (!opts.apiKey && opts.provider !== "custom") throw new Error("missing llm key — set one in Library settings");
+  // Without this, createOpenAI would quietly fall back to api.openai.com.
+  if (opts.provider === "custom" && !opts.baseUrl) throw new Error("missing base URL — set one in Library settings");
+  if (!opts.model) throw new Error(`no model set for ${opts.provider} — pick one in Library settings`);
 
   // The AI SDK rejects `role: "system"` inside `messages` — hoist it to `system`.
   const system = opts.messages
@@ -57,7 +68,7 @@ export async function complete(opts: {
     .join("\n\n");
   const rest = opts.messages.filter((m) => m.role !== "system") as ModelMessage[];
   const { text } = await generateText({
-    model: model(opts.provider, opts.apiKey, opts.model),
+    model: model(opts.provider, opts.apiKey, opts.model, opts.baseUrl),
     system: system || undefined,
     messages: rest,
   });

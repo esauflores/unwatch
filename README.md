@@ -36,6 +36,34 @@ optional **Model**, Save. Then Extract again. Defaults: Anthropic
 
 The **Model** box autocompletes from the provider's own `/v1/models` once a key
 is set (falls back to a short built-in list); it's free text, so any id works.
+The line under it says where the list came from — live, built-in, or the reason
+the lookup failed (a `401` from a bad key shows as one). It re-runs as you type a
+key or URL, and **Refresh** forces it.
+
+## Your own endpoint
+
+Provider `custom` points Unwatch at anything that speaks the OpenAI wire format —
+Ollama, LM Studio, OpenRouter, a self-hosted vLLM, a company gateway. It adds a
+**Base URL** field: give it the `/v1` root, e.g. `http://localhost:11434/v1` or
+`https://openrouter.ai/api/v1`. `https://` is required; `http://` is accepted only
+for `localhost` / `127.0.0.1`.
+
+**Model** is required here — there is no sensible default for an endpoint the
+extension has never seen, so an empty box is filled with the first id the server
+listed (alphabetically) as soon as the lookup returns. An id you typed or saved
+is never overwritten; switching provider clears the box, since a model id belongs
+to one provider. The autocomplete lists whatever the server returns from
+`/models` and reads both `{"data":[…]}` and a bare array, of objects or of plain
+strings. If the server doesn't implement the route you get the status back rather
+than an empty box, and you can just type the id. The **LLM key** may be left
+blank, which is what a local server usually wants.
+
+Until you Save, the model lookup says so instead of failing: the host grant is
+what makes the request possible at all.
+
+Saving asks Chrome for access to that one host (extension pages are subject to
+CORS, so an undeclared host is simply unreachable). Decline and the setting isn't
+saved. Your key is sent to that host and to no other.
 
 **Language** (Library → `English` / `Español`) switches both the panel labels and
 the language the model answers in. One mode at a time, no mixing. First run
@@ -48,8 +76,8 @@ blocks are appended automatically. An untouched box follows the Language selecto
 once you edit it, it stays as written. Stored as `""` while it matches the default.
 
 The key is stored **unencrypted in this browser** (`chrome.storage.local`, same
-as a `.env` file) and is sent only to the provider you pick. Use a key with a
-spend cap.
+as a `.env` file) and is sent only to the provider you pick — for `custom`, that
+means the host in your Base URL. Use a key with a spend cap.
 
 ## What it does
 
@@ -92,7 +120,7 @@ D1 backend (for a shared library across devices) is the plausible next step —
    **full transcript + current extract** — so answers cite `t=MM:SS` and
    "rewrite the bullets" works. Turns are appended to the row.
 4. **`library.ts`** lists the rows (collapsed extract, copy, download transcript,
-   delete) and owns the provider / model / key / language form.
+   delete) and owns the provider / base URL / model / key / language form.
 
 ## Layout
 

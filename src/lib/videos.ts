@@ -24,12 +24,14 @@ function put(videos: Video[], video: Video): Video[] {
 async function llmOpts() {
   const s = await settings();
   const provider = (s.provider || "anthropic") as Provider;
-  const model = s.model || (provider !== "demo" ? defaults[provider] : "demo");
+  // "custom" has no default id — complete() reports the empty model instead.
+  const model = s.model || (provider === "demo" ? "demo" : (defaults[provider] ?? ""));
   const prompts = resolvedPrompts(s);
   return {
     provider,
     apiKey: s.llmKey,
     model,
+    baseUrl: s.baseUrl,
     demo: provider === "demo",
     lang: s.lang,
     filterPrompt: prompts.filter,
