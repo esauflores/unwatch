@@ -78,6 +78,9 @@ body.panel {
   opacity: 0.4;
   cursor: default;
 }
+.tab-panel[hidden] {
+  display: none;
+}
 #verdict {
   display: inline-block;
   margin: 10px 0 4px;

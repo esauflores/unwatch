@@ -3,20 +3,20 @@ import type { DeepChat } from "deep-chat";
 import { debounce } from "lodash-es";
 
 import { type Lang, UI } from "@/lib/i18n";
+import { defaults } from "@/lib/llm";
 import { renderMarkdown } from "@/lib/markdown";
 import { formatTranscript, stripVerdictLine, verdictLabel, type Video } from "@/lib/schema";
-import { settings } from "@/lib/settings";
+import { bindSettingsForm, DEFAULT_CHAT_PROMPT, DEFAULT_FILTER_PROMPT, settings } from "@/lib/settings";
+import { initTabs } from "@/lib/tabs";
 import { errMsg } from "@/lib/util";
-import { chatVideo, filterVideo, getVideo } from "@/lib/videos";
+import { chatVideo, deleteVideo, filterVideo, getVideo, listVideos } from "@/lib/videos";
 
 type Meta = { videoId: string; title?: string; duration?: number };
 
 const err = document.getElementById("err")!;
 const out = document.getElementById("out")!;
 const metaEl = document.getElementById("meta")!;
-const viewExtract = document.getElementById("view-extract")!;
-const viewChat = document.getElementById("view-chat")!;
-const viewDownload = document.getElementById("view-download")!;
+const listEl = document.getElementById("list")!;
 const dc = document.getElementById("dc") as DeepChat;
 const btn = (id: string) => document.getElementById(id) as HTMLButtonElement;
 
@@ -67,32 +67,38 @@ function fitChat(): void {
   dc.style.height = `${Math.max(280, window.innerHeight - dc.getBoundingClientRect().top - 14)}px`;
 }
 
-type View = "extract" | "chat" | "download";
-function showView(view: View): void {
-  viewExtract.hidden = view !== "extract";
-  viewChat.hidden = view !== "chat";
-  viewDownload.hidden = view !== "download";
-  for (const v of ["extract", "chat", "download"] as const) {
-    btn(`tab-${v}`).classList.toggle("active", view === v);
-  }
-  if (view === "chat") fitChat();
-}
-
 function saveFile(name: string, text: string): void {
   const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
   Object.assign(document.createElement("a"), { href: url, download: name }).click();
   URL.revokeObjectURL(url);
 }
-const fileBase = () =>
-  (current?.title ?? "Unwatch")
+const sanitize = (s: string) =>
+  s
     .replace(/[^\p{L}\p{N} _-]/gu, "")
     .trim()
-    .slice(0, 80) || "Unwatch";
+    .slice(0, 80);
+const fileBase = () => sanitize(current?.title ?? "Unwatch") || "Unwatch";
 const chatToMd = (v: Video) =>
   (v.chat_json ?? []).map((turn) => `${turn.role === "user" ? "Q" : "A"}: ${turn.content}`).join("\n\n");
 
+// The Library download buttons act on the video open in the panel — dead until it's extracted.
+function syncDlRow(): void {
+  btn("dl-transcript").disabled = !current;
+  btn("dl-extract").disabled = !current;
+  btn("dl-chat").disabled = !current?.chat_json?.length;
+}
+
+let currentView = "extract";
+const showView = initTabs(document, {
+  onShow: (view) => {
+    currentView = view;
+    if (view === "chat") fitChat();
+    if (view === "library") void refreshLibrary();
+  },
+});
+
 window.addEventListener("resize", () => {
-  if (!viewChat.hidden) fitChat();
+  if (currentView === "chat") fitChat();
 });
 
 // Configure deep-chat once; (re)seed its messages for whichever video is current.
@@ -149,7 +155,7 @@ function showVideo(v: Video): void {
   }
   renderMarkdown(out, stripVerdictLine(v.filter_md ?? ""), seek);
   setupChat(v);
-  btn("tab-download").disabled = false;
+  syncDlRow();
 }
 
 // Disable the button and mark it busy while its async work runs, so a slow
@@ -177,18 +183,109 @@ btn("run").onclick = () =>
     showVideo(await filterVideo({ videoId: p.videoId, title: p.title, cues: p.cues }));
   });
 
-btn("tab-extract").onclick = () => showView("extract");
-btn("tab-chat").onclick = () => showView("chat");
-btn("tab-download").onclick = async () => {
-  if (videoId) current = (await getVideo(videoId)) ?? current; // pick up the latest chat turns
-  btn("dl-chat").disabled = !current?.chat_json?.length;
-  showView("download");
-};
+// ---- Library tab: downloads for the current video + the saved-video list ----
 btn("dl-transcript").onclick = () =>
   current && saveFile(`${fileBase()} — transcript.txt`, formatTranscript(current.transcript_json));
 btn("dl-extract").onclick = () => current && saveFile(`${fileBase()} — extract.md`, current.filter_md ?? "");
 btn("dl-chat").onclick = () => current && saveFile(`${fileBase()} — chat.md`, chatToMd(current));
-btn("lib").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("library.html") });
+
+async function refreshLibrary(): Promise<void> {
+  if (videoId) current = (await getVideo(videoId)) ?? current; // pick up the latest chat turns
+  syncDlRow();
+
+  try {
+    const videos = await listVideos();
+    if (!videos.length) {
+      listEl.replaceChildren(document.createTextNode(t.nothingSaved));
+      return;
+    }
+    listEl.replaceChildren();
+    for (const v of videos) {
+      const el = document.createElement("div");
+      el.className = "item";
+      el.innerHTML =
+        `<div class="item-head"><strong></strong><span class="verdict"></span></div>` +
+        `<details><summary>${t.extract}</summary><div class="md"></div></details>` +
+        `<div class="row">` +
+        `<button class="dl-t">${t.transcript}</button>` +
+        `<button class="dl-e">${t.extract}</button>` +
+        `<button class="dl-c">${t.chat}</button>` +
+        `<button class="del">${t.del}</button></div>`;
+      el.querySelector("strong")!.textContent = v.title;
+      const tag = el.querySelector(".verdict") as HTMLElement;
+      tag.textContent = verdictLabel(v.verdict, lang);
+      if (v.verdict) tag.dataset.v = v.verdict;
+      const raw = v.filter_md ?? "";
+      renderMarkdown(el.querySelector(".md")!, stripVerdictLine(raw));
+      const base = sanitize(v.title) || v.id;
+      el.querySelector(".dl-t")!.addEventListener("click", async () => {
+        const full = await getVideo(v.id);
+        if (full?.transcript_json?.length) saveFile(`${base} — transcript.txt`, formatTranscript(full.transcript_json));
+      });
+      el.querySelector(".dl-e")!.addEventListener("click", () => saveFile(`${base} — extract.md`, raw));
+      el.querySelector(".dl-c")!.addEventListener("click", async () => {
+        const full = await getVideo(v.id);
+        if (full?.chat_json?.length) saveFile(`${base} — chat.md`, chatToMd(full));
+      });
+      el.querySelector(".del")!.addEventListener("click", async () => {
+        if (!confirm(t.deletePrompt(v.title))) return;
+        await deleteVideo(v.id);
+        el.remove();
+        if (!listEl.children.length) listEl.replaceChildren(document.createTextNode(t.nothingSaved));
+      });
+      listEl.append(el);
+    }
+  } catch (e) {
+    showErr(errMsg(e));
+  }
+}
+
+// ---- Settings tab ----
+const form = document.getElementById("settings") as HTMLFormElement;
+bindSettingsForm(form);
+
+// The Model box is free text; this is a convenience list of common ids, from
+// models.dev (2026-09). A `custom` endpoint gets none — type the id it serves.
+const MODEL_HINTS: Record<string, string[]> = {
+  anthropic: ["claude-opus-5", "claude-sonnet-5", "claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"],
+  openai: ["gpt-5.1", "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-4.1-mini", "gpt-4o-mini"],
+  gemini: ["gemini-flash-latest", "gemini-3.5-flash", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"],
+};
+
+const datalist = document.getElementById("model-suggestions") as HTMLDataListElement;
+const modelInput = form.elements.namedItem("model") as HTMLInputElement;
+const providerSelect = form.elements.namedItem("provider") as HTMLSelectElement;
+const keyInput = form.elements.namedItem("llmKey") as HTMLInputElement;
+const baseInput = form.elements.namedItem("baseUrl") as HTMLInputElement;
+const baseRow = document.getElementById("row-baseurl") as HTMLElement;
+
+// Base URL is meaningless for the hosted three — only show it where it applies.
+function syncCustomRow(): void {
+  baseRow.hidden = providerSelect.value !== "custom";
+}
+
+// Fill the datalist from the hardcoded hints for the current provider.
+function syncModelHints(): void {
+  const p = providerSelect.value;
+  const ids = MODEL_HINTS[p] ?? [];
+  datalist.replaceChildren(...ids.map((id) => Object.assign(document.createElement("option"), { value: id })));
+  modelInput.placeholder =
+    defaults[p as keyof typeof defaults] || (p === "custom" ? t.modelRequired : t.modelPlaceholder);
+}
+
+providerSelect.addEventListener("change", () => {
+  syncCustomRow();
+  // A model id belongs to one provider — carrying "claude-sonnet-5" over to openai
+  // only fails at Extract.
+  modelInput.value = "";
+  syncModelHints();
+});
+
+document.getElementById("reset-prompts")!.addEventListener("click", () => {
+  const l = (form.elements.namedItem("lang") as HTMLSelectElement).value === "es" ? "es" : "en";
+  (form.elements.namedItem("filterPrompt") as HTMLTextAreaElement).value = DEFAULT_FILTER_PROMPT[l];
+  (form.elements.namedItem("chatPrompt") as HTMLTextAreaElement).value = DEFAULT_CHAT_PROMPT[l];
+});
 
 const loadingEl = document.getElementById("loading")!;
 const verdictEl = document.getElementById("verdict") as HTMLElement;
@@ -198,7 +295,8 @@ function clearVideoUI(): void {
   out.replaceChildren();
   verdictEl.hidden = true;
   btn("tab-chat").disabled = true;
-  btn("tab-download").disabled = true;
+  syncDlRow();
+  if (currentView === "chat") showView("extract"); // Chat has no video to show now
   try {
     dc.clearMessages(true);
   } catch {
@@ -216,7 +314,8 @@ async function refresh(): Promise<void> {
     const v = await getVideo(p.videoId);
     if (v) showVideo(v);
     else clearVideoUI();
-    showView("extract");
+    // Snap to Extract for the new video — but don't yank the user off Library/Settings.
+    if (currentView === "extract" || currentView === "chat") showView("extract");
   } catch {
     videoId = "";
     clearVideoUI();
@@ -241,16 +340,43 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 (async () => {
-  lang = (await settings()).lang;
+  const s = await settings();
+  lang = s.lang;
   t = UI[lang];
+
   btn("run").textContent = t.filter;
   btn("tab-extract").textContent = t.extract;
   btn("tab-chat").textContent = t.chat;
-  btn("tab-download").textContent = t.downloadTab;
+  btn("tab-library").textContent = t.library;
+  btn("tab-settings").textContent = t.settingsHeading;
   btn("dl-transcript").textContent = t.transcript;
   btn("dl-extract").textContent = t.extract;
   btn("dl-chat").textContent = t.chat;
-  btn("lib").textContent = t.library;
+  for (const [id, str] of [
+    ["h-saved", t.savedHeading],
+    ["l-provider", t.providerLabel],
+    ["l-baseurl", t.baseUrlLabel],
+    ["n-baseurl", t.baseUrlNote],
+    ["l-model", t.modelLabel],
+    ["l-key", t.keyLabel],
+    ["l-fprompt", t.filterPromptLabel],
+    ["l-cprompt", t.chatPromptLabel],
+    ["l-lang", t.languageLabel],
+    ["save-btn", t.save],
+    ["reset-prompts", t.resetPrompts],
+  ] as const) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = str;
+  }
+
+  providerSelect.value = s.provider;
+  modelInput.value = s.model;
+  keyInput.value = s.llmKey;
+  baseInput.value = s.baseUrl;
+  baseInput.placeholder = t.baseUrlPlaceholder;
+  syncCustomRow();
+  syncModelHints();
+
   await refresh();
   ready = true;
 })();

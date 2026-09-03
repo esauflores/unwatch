@@ -9,28 +9,96 @@
     <div id="loading" class="loading"><span class="spinner"></span></div>
     <header>
       <h1>Unwatch</h1>
-      <button id="lib" class="ghost">Library &amp; settings</button>
     </header>
     <div class="tabs">
       <button id="tab-extract" class="tab active" data-view="extract">Extract</button>
       <button id="tab-chat" class="tab" data-view="chat" disabled>Chat</button>
-      <button id="tab-download" class="tab" data-view="download" disabled>Download</button>
+      <button id="tab-library" class="tab" data-view="library">Library</button>
+      <button id="tab-settings" class="tab" data-view="settings">Settings</button>
     </div>
     <p id="meta"></p>
     <p id="err" class="err"></p>
-    <section id="view-extract">
+
+    <section class="tab-panel" data-view="extract">
       <button id="run" class="primary block">Extract from this video</button>
       <span id="verdict" class="verdict" hidden></span>
       <section id="out" class="md"></section>
     </section>
-    <section id="view-chat" hidden>
+
+    <section class="tab-panel" data-view="chat" hidden>
       <deep-chat id="dc"></deep-chat>
     </section>
-    <section id="view-download" hidden>
-      <button id="dl-transcript" class="block">Transcript</button>
-      <button id="dl-extract" class="block">Extract</button>
-      <button id="dl-chat" class="block">Chat</button>
+
+    <section class="tab-panel" data-view="library" hidden>
+      <!-- downloads for the video currently open in the side panel; disabled until it's extracted -->
+      <div id="dl-row" class="row">
+        <button id="dl-transcript" disabled>Transcript</button>
+        <button id="dl-extract" disabled>Extract</button>
+        <button id="dl-chat" disabled>Chat</button>
+      </div>
+      <h2 id="h-saved">Saved</h2>
+      <div id="list"></div>
     </section>
+
+    <section class="tab-panel" data-view="settings" hidden>
+      <form id="settings">
+        <label>
+          <span id="l-provider">Provider</span>
+          <select name="provider">
+            <option value="anthropic">anthropic</option>
+            <option value="openai">openai</option>
+            <option value="gemini">gemini</option>
+            <option value="custom">custom</option>
+          </select>
+        </label>
+        <label id="row-baseurl" hidden>
+          <span id="l-baseurl">Base URL</span>
+          <!-- text, not url: a hidden-but-invalid `type=url` blocks submit with no message -->
+          <input
+            name="baseUrl"
+            type="text"
+            inputmode="url"
+            spellcheck="false"
+            placeholder="http://localhost:11434/v1"
+          />
+          <small id="n-baseurl" class="note"></small>
+        </label>
+        <label>
+          <span id="l-model">Model</span>
+          <input name="model" list="model-suggestions" placeholder="default for provider" />
+          <datalist id="model-suggestions"></datalist>
+        </label>
+        <label>
+          <span id="l-key">LLM key</span>
+          <input name="llmKey" type="password" autocomplete="off" />
+        </label>
+        <label>
+          <span id="l-fprompt">Extract prompt</span>
+          <textarea name="filterPrompt" rows="7"></textarea>
+        </label>
+        <label>
+          <span id="l-cprompt">Chat prompt</span>
+          <textarea name="chatPrompt" rows="5"></textarea>
+        </label>
+        <label>
+          <span id="l-lang">Language</span>
+          <select name="lang">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </label>
+        <div class="row">
+          <button id="save-btn" class="primary" type="submit">Save</button>
+          <button id="reset-prompts" type="button">Reset prompts</button>
+          <span data-saved class="ok"></span>
+        </div>
+      </form>
+      <p class="credit">
+        Made by
+        <a href="https://github.com/esauflores" target="_blank" rel="noopener">esauflores</a>
+      </p>
+    </section>
+
     <script src="sidepanel.js"></script>
   </body>
 </html>
