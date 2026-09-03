@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Unwatch",
   "version": "0.0.2",
-  "minimum_chrome_version": "114",
+  "minimum_chrome_version": "116",
   "description": "Extract a skip/keep verdict + claim bullets from a YouTube video's transcript, then chat with it. Bring your own LLM key.",
   "homepage_url": "https://github.com/esauflores",
   "permissions": ["sidePanel", "storage", "unlimitedStorage", "activeTab"],
@@ -13,6 +13,9 @@
     "https://generativelanguage.googleapis.com/*"
   ],
   "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'"
+  },
   "background": { "service_worker": "background.js" },
   "icons": { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png" },
   "action": {

@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# Least privilege: the workflow only reads the repo (checkout) and uploads an
+# artifact (Actions API, not gated by this) — no write scopes needed.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest

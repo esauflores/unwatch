@@ -47,6 +47,8 @@ it("parseVerdict reads the first line, either language", () => {
   expect(parseVerdict("seen")).toBe("ya_visto");
   expect(parseVerdict("mixed")).toBe("mixto");
   expect(parseVerdict("hello")).toBe(null);
+  expect(parseVerdict("unseen territory")).toBe(null); // "seen" is not a substring match
+  expect(parseVerdict("mixed — mostly seen")).toBe("mixto"); // leading word wins, order-independent
 });
 
 it("extractClaimsMd keeps bullet lines only", () => {

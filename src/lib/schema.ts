@@ -18,10 +18,13 @@ export type Video = {
 export type ListItem = Omit<Video, "transcript_json" | "chat_json">;
 
 export function parseVerdict(md: string): Verdict | null {
-  const first = md.trim().split("\n")[0]?.toLowerCase() ?? "";
-  if (/ya_visto|ya visto|seen/.test(first)) return "ya_visto";
-  if (/mixto|mixed/.test(first)) return "mixto";
-  if (/nuevo|new/.test(first)) return "nuevo";
+  // Match the leading word of the first line (after any ** / # / - decoration),
+  // not a substring anywhere in it: "unseen" isn't "seen", and "mixed (partly
+  // seen)" is mixto, not ya_visto.
+  const first = (md.trim().split("\n")[0] ?? "").toLowerCase().replace(/^[^a-zñ]+/i, "");
+  if (/^(ya[_ ]visto|seen)\b/.test(first)) return "ya_visto";
+  if (/^(mixto|mixed)\b/.test(first)) return "mixto";
+  if (/^(nuevo|new)\b/.test(first)) return "nuevo";
   return null;
 }
 

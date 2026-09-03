@@ -116,7 +116,9 @@ function setupChat(v: Video): void {
   btn("tab-chat").disabled = false;
   if (!chatReady) {
     chatReady = true;
-    dc.style.cssText = `display:block;width:100%;border:1px solid ${C.line};border-radius:10px;background-color:${C.panel}`;
+    // A custom font-family makes deep-chat skip injecting its <link> to
+    // fonts.googleapis.com — no third-party request on panel open (PRIVACY.md).
+    dc.style.cssText = `display:block;width:100%;border:1px solid ${C.line};border-radius:10px;background-color:${C.panel};font-family:system-ui,sans-serif`;
     dc.textInput = {
       placeholder: { text: t.askPlaceholder, style: { color: C.muted } },
       styles: { text: { color: C.fg }, container: { backgroundColor: C.panel2, border: `1px solid ${C.line}` } },

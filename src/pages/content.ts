@@ -36,13 +36,10 @@ function duration(): number {
 }
 
 // Primary path: the youtube-transcript package (watch-HTML / InnerTube → timedtext).
+// No lang preference — YouTube's default track is the native one, which is the
+// highest-fidelity input; the model answers in the user's language regardless.
 async function libCaptions(id: string): Promise<Cue[]> {
-  let rows;
-  try {
-    rows = await YoutubeTranscript.fetchTranscript(id, { lang: "es" });
-  } catch {
-    rows = await YoutubeTranscript.fetchTranscript(id);
-  }
+  const rows = await YoutubeTranscript.fetchTranscript(id);
   // offset/duration come back in ms (srv3) or seconds (classic) depending on the
   // format YouTube served — a caption line is never 100s long, so let duration decide.
   const inMs = rows.some((r) => r.duration > 100);
@@ -59,7 +56,9 @@ function tsToSeconds(s: string): number {
 }
 
 function clickByText(re: RegExp): boolean {
-  for (const n of Array.from(document.querySelectorAll<HTMLElement>("button, tp-yt-paper-button, a"))) {
+  // buttons only — never <a>: a loose /transcript/i match on a description or
+  // comment link would .click() it and navigate the tab off the video.
+  for (const n of Array.from(document.querySelectorAll<HTMLElement>("button, tp-yt-paper-button"))) {
     if (re.test((n.getAttribute("aria-label") || n.textContent || "").trim())) {
       n.click();
       return true;
