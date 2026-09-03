@@ -2,6 +2,7 @@ import "deep-chat"; // side-effect: registers the <deep-chat> element
 import type { DeepChat } from "deep-chat";
 import { debounce } from "lodash-es";
 
+import { classify, UnwatchError } from "@/lib/errors";
 import { type Lang, UI } from "@/lib/i18n";
 import { defaults } from "@/lib/llm";
 import { renderMarkdown } from "@/lib/markdown";
@@ -36,8 +37,17 @@ const C = {
   accentInk: "#06121a",
 };
 
-function showErr(e: string): void {
-  err.textContent = e || "";
+// Translate a known error to the current language; unknown ones keep their raw
+// message. `detail` (when present) goes to the console only.
+function describeError(e: unknown): string {
+  const code = classify(e);
+  if (!code) return errMsg(e);
+  if (e instanceof UnwatchError && e.detail) console.warn("[unwatch]", e.code, "—", e.detail);
+  return t.errors[code];
+}
+
+function showErr(e: unknown): void {
+  err.textContent = e ? describeError(e) : "";
 }
 
 async function tabId(): Promise<number | undefined> {
@@ -49,7 +59,7 @@ async function send(msg: unknown): Promise<any> {
   const id = await tabId();
   if (!id) throw new Error("no active tab");
   const res = await chrome.tabs.sendMessage(id, msg);
-  if (res?.error) throw new Error(res.error);
+  if (res?.error) throw res.code ? new UnwatchError(res.code, res.error) : new Error(res.error);
   return res;
 }
 
@@ -130,7 +140,7 @@ function setupChat(v: Video): void {
           const { answer } = await chatVideo(videoId, msg); // videoId is kept current by refresh()
           signals.onResponse({ text: answer });
         } catch (e) {
-          signals.onResponse({ error: errMsg(e) });
+          signals.onResponse({ error: describeError(e) });
         }
       },
     };
@@ -169,7 +179,7 @@ async function busy(id: string, fn: () => Promise<void>): Promise<void> {
   try {
     await fn();
   } catch (e) {
-    showErr(errMsg(e));
+    showErr(e);
   } finally {
     b.disabled = false;
     b.classList.remove("busy");
@@ -236,7 +246,7 @@ async function refreshLibrary(): Promise<void> {
       listEl.append(el);
     }
   } catch (e) {
-    showErr(errMsg(e));
+    showErr(e);
   }
 }
 

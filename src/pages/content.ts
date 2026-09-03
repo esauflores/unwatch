@@ -1,8 +1,16 @@
 import { YoutubeTranscript } from "youtube-transcript";
 
+import { UnwatchError } from "@/lib/errors";
+
 type Cue = { t: number; text: string };
 
 const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
+// Errors cross the runtime-message boundary as a string, so send the ErrCode
+// alongside it when we have one — the panel rebuilds the UnwatchError. For our
+// own errors send the bare detail, not the `code: detail` message.
+const errPayload = (e: unknown) =>
+  e instanceof UnwatchError ? { error: e.detail ?? e.code, code: e.code } : { error: errMsg(e), code: undefined };
 
 function videoId(): string | null {
   return new URLSearchParams(location.search).get("v");
@@ -69,7 +77,7 @@ async function scrapeTranscriptPanel(): Promise<Cue[]> {
     document.querySelector<HTMLElement>("ytd-text-inline-expander #expand, tp-yt-paper-button#expand")?.click();
     await sleep(300);
     if (!clickByText(/^show transcript$/i) && !clickByText(/transcript/i)) {
-      throw new Error("no transcript available for this video");
+      throw new UnwatchError("no_captions", "transcript panel button never appeared");
     }
     for (let i = 0; i < 30 && !document.querySelector(SEG); i++) await sleep(200);
   }
@@ -81,14 +89,24 @@ async function scrapeTranscriptPanel(): Promise<Cue[]> {
   }
   clickByText(/^hide transcript$/i); // leave the page as we found it
 
-  if (!cues.length) throw new Error("transcript panel rendered no segments");
+  if (!cues.length) throw new UnwatchError("no_captions", "transcript panel rendered no segments");
   console.warn(`[unwatch] scraped ${cues.length} transcript segments from the panel`);
   return cues;
 }
 
+// While an ad plays, #movie_player carries .ad-showing and caption access is
+// blocked — a different failure from "this video has no captions" (retryable).
+const adPlaying = () => !!document.querySelector(".ad-showing, .ad-interrupting");
+
+// YouTube's cookie-consent lightbox sits over the player; nothing loads behind
+// it. The element name has drifted across YT revisions — cover the known ones.
+const consentWall = () =>
+  !!document.querySelector("ytd-consent-bump-v2-lightbox, ytd-consent-bump-lightbox, #consent-bump");
+
 async function captions(): Promise<Cue[]> {
   const id = videoId();
-  if (!id) throw new Error("not a watch page");
+  if (!id) throw new UnwatchError("not_watch_page");
+  if (consentWall()) throw new UnwatchError("consent_required");
   try {
     const cues = await libCaptions(id);
     if (cues.length) {
@@ -99,12 +117,17 @@ async function captions(): Promise<Cue[]> {
     console.warn("[unwatch] youtube-transcript failed:", errMsg(e));
   }
   console.warn("[unwatch] falling back to YouTube's transcript panel");
-  return scrapeTranscriptPanel();
+  try {
+    return await scrapeTranscriptPanel();
+  } catch (e) {
+    if (adPlaying()) throw new UnwatchError("ad_playing");
+    throw e;
+  }
 }
 
 function meta(): { videoId: string; title: string; duration: number } {
   const id = videoId();
-  if (!id) throw new Error("not a watch page");
+  if (!id) throw new UnwatchError("not_watch_page");
   return { videoId: id, title: title(), duration: duration() };
 }
 
@@ -113,14 +136,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     try {
       sendResponse(meta());
     } catch (err) {
-      sendResponse({ error: errMsg(err) });
+      sendResponse(errPayload(err));
     }
     return;
   }
   if (msg?.type === "unwatch:page") {
     (async () => ({ ...meta(), cues: await captions() }))()
       .then(sendResponse)
-      .catch((err) => sendResponse({ error: errMsg(err) }));
+      .catch((err) => sendResponse(errPayload(err)));
     return true;
   }
   if (msg?.type === "unwatch:seek") {

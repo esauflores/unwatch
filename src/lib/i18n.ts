@@ -1,3 +1,4 @@
+import type { ErrCode } from "@/lib/errors";
 import type { BaseUrlError } from "@/lib/settings";
 
 export type Lang = "en" | "es";
@@ -22,6 +23,7 @@ type Strings = {
   baseUrlPlaceholder: string;
   baseUrlNote: string;
   baseUrlErrors: Record<BaseUrlError, string>;
+  errors: Record<ErrCode, string>;
   permissionDenied: string;
   save: string;
   saved: string;
@@ -59,6 +61,19 @@ export const UI: Record<Lang, Strings> = {
       invalid: "not a valid URL — include the scheme, e.g. https://host/v1",
       insecure: "http:// is only allowed for localhost / 127.0.0.1 — use https://",
     },
+    errors: {
+      not_watch_page: "Open a youtube.com/watch page first.",
+      no_captions: "This video has no readable captions.",
+      ad_playing: "An ad is playing — captions can't be read yet. Try again in a moment.",
+      consent_required: "YouTube is showing a consent or sign-in screen for this video.",
+      too_long: "The transcript is longer than the model's context window.",
+      key_missing: "No LLM key set — add one in Settings.",
+      key_rejected: "The LLM provider rejected your key. Check it in Settings.",
+      rate_limited: "Rate limited or out of quota — wait a moment and retry.",
+      network: "Network error reaching the LLM provider.",
+      timeout: "The request to the LLM provider timed out.",
+      empty_response: "The model returned nothing. Try again.",
+    },
     permissionDenied: "not saved — Chrome needs access to that host to reach it",
     save: "Save",
     saved: "saved",
@@ -93,6 +108,19 @@ export const UI: Record<Lang, Strings> = {
       missing: "la URL base es obligatoria para un endpoint propio",
       invalid: "URL no válida — incluye el esquema, p. ej. https://host/v1",
       insecure: "http:// solo se permite para localhost / 127.0.0.1 — usa https://",
+    },
+    errors: {
+      not_watch_page: "Abre primero una página youtube.com/watch.",
+      no_captions: "Este video no tiene subtítulos legibles.",
+      ad_playing: "Hay un anuncio en reproducción — los subtítulos aún no se pueden leer. Inténtalo en un momento.",
+      consent_required: "YouTube muestra una pantalla de consentimiento o inicio de sesión para este video.",
+      too_long: "La transcripción supera la ventana de contexto del modelo.",
+      key_missing: "No hay clave del LLM — añade una en Ajustes.",
+      key_rejected: "El proveedor del LLM rechazó tu clave. Revísala en Ajustes.",
+      rate_limited: "Límite de peticiones o cuota agotada — espera un momento y reinténtalo.",
+      network: "Error de red al contactar con el proveedor del LLM.",
+      timeout: "La petición al proveedor del LLM expiró.",
+      empty_response: "El modelo no devolvió nada. Inténtalo de nuevo.",
     },
     permissionDenied: "no guardado — Chrome necesita acceso a ese host para alcanzarlo",
     save: "Guardar",

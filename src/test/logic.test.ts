@@ -1,5 +1,6 @@
 import { expect, it, vi } from "vitest";
 
+import { classify, UnwatchError } from "@/lib/errors";
 import { complete, demoComplete } from "@/lib/llm";
 import { renderMarkdown } from "@/lib/markdown";
 import { extractClaimsMd, formatTranscript, parseVerdict, stripVerdictLine } from "@/lib/schema";
@@ -105,9 +106,21 @@ it("complete falls back to demo, and rejects a real provider with no key", async
       messages: [{ role: "user", content: "Transcript:" }],
     }),
   ).toMatch(/^new/);
-  await expect(complete({ provider: "openai", apiKey: "", model: "gpt", messages: [] })).rejects.toThrow(
-    /missing llm key/,
-  );
+  await expect(complete({ provider: "openai", apiKey: "", model: "gpt", messages: [] })).rejects.toThrow(/key_missing/);
+});
+
+it("classify: known error shapes -> ErrCode, unknown -> null", () => {
+  expect(classify(new UnwatchError("rate_limited"))).toBe("rate_limited");
+  expect(classify({ statusCode: 401 })).toBe("key_rejected");
+  expect(classify({ statusCode: 403 })).toBe("key_rejected");
+  expect(classify({ statusCode: 429 })).toBe("rate_limited");
+  expect(classify({ status: 503 })).toBe("network");
+  expect(classify(new TypeError("Failed to fetch"))).toBe("network");
+  expect(classify(new Error("something odd"))).toBe(null);
+  // a 400 is too_long only when the body says so
+  expect(classify({ statusCode: 400, message: "prompt is too long: 210000 tokens > 200000 maximum" })).toBe("too_long");
+  expect(classify({ statusCode: 400, responseBody: "maximum context length is 128000 tokens" })).toBe("too_long");
+  expect(classify({ statusCode: 400, message: "invalid model id" })).toBe(null);
 });
 
 it("complete lets a custom endpoint run keyless, but not without a base URL or model", async () => {

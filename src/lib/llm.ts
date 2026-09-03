@@ -3,6 +3,8 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText, type ModelMessage } from "ai";
 
+import { UnwatchError } from "@/lib/errors";
+
 export type Provider = "anthropic" | "openai" | "gemini" | "custom" | "demo";
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
@@ -56,7 +58,7 @@ export async function complete(opts: {
 }): Promise<string> {
   if (opts.demo || opts.provider === "demo") return demoComplete(opts.messages);
   // A local endpoint is usually unauthenticated; every hosted one needs a key.
-  if (!opts.apiKey && opts.provider !== "custom") throw new Error("missing llm key — set one in Library settings");
+  if (!opts.apiKey && opts.provider !== "custom") throw new UnwatchError("key_missing");
   // Without this, createOpenAI would quietly fall back to api.openai.com.
   if (opts.provider === "custom" && !opts.baseUrl) throw new Error("missing base URL — set one in Library settings");
   if (!opts.model) throw new Error(`no model set for ${opts.provider} — pick one in Library settings`);
@@ -67,11 +69,30 @@ export async function complete(opts: {
     .map((m) => m.content)
     .join("\n\n");
   const rest = opts.messages.filter((m) => m.role !== "system") as ModelMessage[];
-  const { text } = await generateText({
-    model: model(opts.provider, opts.apiKey, opts.model, opts.baseUrl),
-    system: system || undefined,
-    messages: rest,
-  });
-  if (!text) throw new Error(`${opts.provider} returned no content`);
+
+  // No default timeout in the SDK — a hung connection would wait forever. A flag
+  // (not signal.aborted) tells our timeout apart from a future caller-supplied
+  // abort, e.g. #3's stream-cancel: that one should surface as its own error.
+  const ac = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    ac.abort();
+  }, 120_000);
+  let text: string;
+  try {
+    ({ text } = await generateText({
+      model: model(opts.provider, opts.apiKey, opts.model, opts.baseUrl),
+      system: system || undefined,
+      messages: rest,
+      abortSignal: ac.signal,
+    }));
+  } catch (e) {
+    if (timedOut) throw new UnwatchError("timeout", opts.provider);
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!text) throw new UnwatchError("empty_response", opts.provider);
   return text;
 }
