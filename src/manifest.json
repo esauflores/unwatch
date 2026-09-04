@@ -3,7 +3,7 @@
   "name": "Unwatch",
   "version": "0.0.2",
   "minimum_chrome_version": "116",
-  "description": "Extract a skip/keep verdict + claim bullets from a YouTube video's transcript, then chat with it. Bring your own LLM key.",
+  "description": "Get a quick skip-or-watch call on a YouTube video from its transcript, then ask it questions. Bring your own LLM key.",
   "homepage_url": "https://github.com/esauflores",
   "permissions": ["sidePanel", "storage", "unlimitedStorage", "activeTab"],
   "host_permissions": [
